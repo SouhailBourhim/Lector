@@ -1,0 +1,12 @@
+edge-tts>=6.1.12
+PyMuPDF>=1.23.0
+ebooklib>=0.18
+beautifulsoup4>=4.12.0
+spacy>=3.7.0
+pydub>=0.25.1
+click>=8.1.7
+rich>=13.7.0
+pygame>=2.5.2
+chardet>=5.2.0
+# After install: python -m spacy download en_core_web_sm
+# System dep:    brew install ffmpeg  (required by pydub for MP3)
