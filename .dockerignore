@@ -1,0 +1,14 @@
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.DS_Store
+.env
+*.pdf
+*.epub
+*.mp3
+output/
+.git/
+.gitignore
+README.md

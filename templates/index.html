@@ -23,19 +23,20 @@
 
   <main>
 
-    <!-- ═══════════════════════════════════════════════════════
+    <!-- ═══════════════════════════════════════════════════
          SCREEN 1: Upload
-    ════════════════════════════════════════════════════════ -->
+    ════════════════════════════════════════════════════ -->
     <div id="screen-upload" class="screen active">
-      <div class="screen-inner upload-screen">
+      <div class="upload-inner">
+        <div class="hero-eyebrow">✦ Powered by Neural TTS</div>
         <h1 class="hero-title">Turn any book into<br/>natural audio</h1>
-        <p class="hero-sub">Upload a PDF or EPUB — Lector reads it like a human narrator.</p>
+        <p class="hero-sub">Upload a PDF or EPUB — Lector reads it like a human narrator,<br/>with natural pacing, pauses, and tone.</p>
 
         <div id="drop-zone" class="drop-zone" role="button" tabindex="0"
              aria-label="Upload PDF or EPUB file">
           <div class="drop-icon" aria-hidden="true">📖</div>
           <p class="drop-primary">Drop your book here</p>
-          <p class="drop-secondary">PDF or EPUB &nbsp;·&nbsp; drag &amp; drop or click to browse</p>
+          <p class="drop-secondary">PDF or EPUB · drag & drop or click to browse</p>
           <button class="btn btn-secondary" type="button"
                   onclick="document.getElementById('file-input').click()">
             Choose file
@@ -47,91 +48,108 @@
           <span class="spinner" aria-hidden="true"></span>
           <span id="upload-status-text">Uploading…</span>
         </div>
+
+        <div class="feature-pills">
+          <span class="pill">🎙 Natural prosody</span>
+          <span class="pill">🌍 40+ voices</span>
+          <span class="pill">📄 PDF &amp; EPUB</span>
+          <span class="pill">⚡ 100% free</span>
+        </div>
       </div>
     </div>
 
-    <!-- ═══════════════════════════════════════════════════════
-         SCREEN 2: Chapter selection
-    ════════════════════════════════════════════════════════ -->
-    <div id="screen-chapters" class="screen hidden">
-      <div class="screen-inner chapters-screen">
-        <div class="chapters-header">
+    <!-- ═══════════════════════════════════════════════════
+         SCREEN 2: App (two-panel: sidebar + content)
+    ════════════════════════════════════════════════════ -->
+    <div id="screen-app" class="screen">
+
+      <!-- Left panel: book info + chapter list + generate button -->
+      <aside class="panel-left">
+        <div class="panel-left-header">
           <button class="btn-back" onclick="backToUpload()" aria-label="Go back">
-            ← Back
+            ← back
           </button>
-          <div class="chapters-title-block">
-            <h2 id="book-name-display" class="book-name"></h2>
-            <span id="chapter-count-display" class="chapter-count"></span>
-          </div>
+          <div id="book-name-display" class="book-name"></div>
+          <div id="chapter-count-display" class="chapter-count"></div>
         </div>
 
-        <div class="options-row">
-          <div class="voice-group">
-            <label class="field-label" for="voice-select">Voice</label>
-            <select id="voice-select" class="voice-select"></select>
-          </div>
-          <label class="checkbox-label select-all-label">
+        <div class="voice-section">
+          <label class="field-label" for="voice-select">Voice</label>
+          <select id="voice-select" class="voice-select"></select>
+        </div>
+
+        <div class="select-all-row">
+          <label class="select-all-label">
             <input type="checkbox" id="select-all" checked />
             <span>Select all</span>
           </label>
         </div>
 
-        <div id="chapter-list" class="chapter-list" role="list"></div>
+        <div id="chapter-list" class="chapter-list" role="list"
+             aria-label="Chapter list"></div>
 
-        <div class="generate-row">
-          <button id="generate-btn" class="btn btn-primary btn-large"
+        <div class="panel-left-footer">
+          <button id="generate-btn" class="btn btn-primary btn-full btn-large"
                   onclick="startSynthesis()">
             Generate Audio
           </button>
         </div>
-      </div>
-    </div>
+      </aside>
 
-    <!-- ═══════════════════════════════════════════════════════
-         SCREEN 3: Progress
-    ════════════════════════════════════════════════════════ -->
-    <div id="screen-progress" class="screen hidden">
-      <div class="screen-inner progress-screen">
-        <h2 class="progress-title">Generating your audiobook…</h2>
+      <!-- Right panel: progress or results -->
+      <div class="panel-right" id="panel-right">
 
-        <div class="status-pill" id="status-pill">analyzing</div>
+        <!-- Progress view -->
+        <div id="progress-view" class="progress-view hidden">
+          <div class="status-pill" id="status-pill">analyzing</div>
+          <h2 class="progress-title">Generating your audiobook…</h2>
+          <p class="progress-sub" id="progress-sub">Hang tight — this takes a few minutes.</p>
 
-        <p id="progress-message" class="progress-message">Starting…</p>
-
-        <div class="progress-track" role="progressbar"
-             aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"
-             id="progress-track">
-          <div class="progress-fill" id="progress-fill"></div>
-        </div>
-
-        <p id="progress-pct" class="progress-pct">0%</p>
-
-        <p class="progress-note">This may take a few minutes for long chapters.</p>
-      </div>
-    </div>
-
-    <!-- ═══════════════════════════════════════════════════════
-         SCREEN 4: Result
-    ════════════════════════════════════════════════════════ -->
-    <div id="screen-result" class="screen hidden">
-      <div class="screen-inner result-screen">
-        <div class="result-header">
-          <div>
-            <h2 class="result-title">Your audiobook is ready</h2>
-            <p class="result-sub" id="result-sub"></p>
+          <div class="ring-wrap" role="progressbar"
+               aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"
+               id="progress-ring-wrap">
+            <svg class="ring-svg" viewBox="0 0 140 140">
+              <circle class="ring-track" cx="70" cy="70" r="60" />
+              <circle class="ring-fill" id="ring-fill" cx="70" cy="70" r="60" />
+            </svg>
+            <div class="ring-pct">
+              <span id="ring-pct-text">0%</span>
+              <span class="ring-label" id="ring-status-label">starting</span>
+            </div>
           </div>
-          <button class="btn btn-secondary" onclick="convertAnother()">
-            Convert another book
-          </button>
+
+          <div class="activity-log">
+            <div class="activity-log-title">Activity</div>
+            <div class="activity-entries" id="activity-entries"></div>
+          </div>
         </div>
 
-        <div id="audio-list" class="audio-list"></div>
+        <!-- Result view -->
+        <div id="result-view" class="result-view hidden">
+          <div class="result-header">
+            <div>
+              <h2 class="result-title">Your audiobook is ready</h2>
+              <p class="result-sub" id="result-sub"></p>
+            </div>
+            <button class="btn btn-secondary" onclick="convertAnother()">
+              Convert another
+            </button>
+          </div>
+          <div id="audio-list" class="audio-list"></div>
+        </div>
+
+        <!-- Placeholder before generation starts -->
+        <div id="right-placeholder" style="display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;gap:12px;color:var(--text-3);text-align:center;padding:48px 0;">
+          <div style="font-size:40px;">🎧</div>
+          <p style="font-size:14px;">Select chapters and click <strong style="color:var(--text-2)">Generate Audio</strong></p>
+        </div>
+
       </div>
     </div>
 
   </main>
 
-  <!-- Global error banner — lives outside all screens so it's always visible -->
+  <!-- Global error banner -->
   <div id="error-banner" class="error-banner hidden" role="alert" aria-live="assertive">
     <span id="error-text"></span>
     <button class="error-close" onclick="hideError()" aria-label="Dismiss error">×</button>
@@ -141,6 +159,8 @@
     <span>Powered by Microsoft Edge Neural TTS · 100% free · no API key needed</span>
   </footer>
 
+  <!-- WaveSurfer.js -->
+  <script src="https://unpkg.com/wavesurfer.js@7/dist/wavesurfer.min.js"></script>
   <script src="/static/app.js"></script>
 </body>
 </html>

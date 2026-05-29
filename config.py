@@ -1,3 +1,5 @@
+import os
+
 DEFAULT_VOICE = "en-US-AriaNeural"
 
 VOICES = [
@@ -37,7 +39,7 @@ SECTION_BREAK_PAUSE_MS = 2000
 HEADING_FONT_RATIO = 1.4
 
 # TTS concurrency
-TTS_MAX_CONCURRENCY = 3
+TTS_MAX_CONCURRENCY = int(os.getenv("TTS_CONCURRENCY", "10"))
 TTS_RETRY_ATTEMPTS = 3
 
 # Audio normalization
