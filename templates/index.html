@@ -47,11 +47,6 @@
           <span class="spinner" aria-hidden="true"></span>
           <span id="upload-status-text">Uploading…</span>
         </div>
-
-        <div id="error-banner" class="error-banner hidden" role="alert">
-          <span id="error-text"></span>
-          <button class="error-close" onclick="hideError()" aria-label="Dismiss error">×</button>
-        </div>
       </div>
     </div>
 
@@ -135,6 +130,12 @@
     </div>
 
   </main>
+
+  <!-- Global error banner — lives outside all screens so it's always visible -->
+  <div id="error-banner" class="error-banner hidden" role="alert" aria-live="assertive">
+    <span id="error-text"></span>
+    <button class="error-close" onclick="hideError()" aria-label="Dismiss error">×</button>
+  </div>
 
   <footer class="site-footer">
     <span>Powered by Microsoft Edge Neural TTS · 100% free · no API key needed</span>

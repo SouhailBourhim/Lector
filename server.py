@@ -120,7 +120,7 @@ async def upload_book(file: UploadFile = File(...)):
     job = Job(id=job_id, status="parsing", book_path=book_path)
     jobs[job_id] = job
 
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     try:
         if ext == ".pdf":
             from parsers.pdf_parser import PDFParser
@@ -316,7 +316,7 @@ async def get_voices():
 # ─── Background synthesis task ────────────────────────────────────────────────
 async def _run_synthesis(job_id: str) -> None:
     job  = jobs[job_id]
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
 
     try:
         from analyzer.text_analyzer import TextAnalyzer
