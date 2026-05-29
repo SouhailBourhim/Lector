@@ -110,14 +110,28 @@ function renderChapterList(chapters) {
   list.innerHTML = '';
 
   chapters.forEach(ch => {
-    const row = document.createElement('div');
+    const row   = document.createElement('div');
     row.className = 'chapter-row';
-    row.innerHTML = `
-      <label class="chapter-label">
-        <input type="checkbox" class="chapter-cb" value="${ch.number}" checked />
-        <span class="chapter-num">${ch.number}</span>
-        <span class="chapter-title">${escapeHtml(ch.title)}</span>
-      </label>`;
+
+    const label = document.createElement('label');
+    label.className = 'chapter-label';
+
+    const cb = document.createElement('input');
+    cb.type      = 'checkbox';
+    cb.className = 'chapter-cb';
+    cb.value     = ch.number;
+    cb.checked   = true;
+
+    const num = document.createElement('span');
+    num.className   = 'chapter-num';
+    num.textContent = ch.number;
+
+    const title = document.createElement('span');
+    title.className   = 'chapter-title';
+    title.textContent = ch.title;   // textContent — no XSS risk
+
+    label.append(cb, num, title);
+    row.appendChild(label);
     list.appendChild(row);
   });
 
@@ -243,27 +257,40 @@ function renderResult(chapters, totalDurationS) {
     const chParam = ch.number != null ? `?chapter=${ch.number}` : '';
     const card = document.createElement('div');
     card.className = 'audio-card';
-    card.innerHTML = `
-      <div class="audio-card-header">
-        ${ch.number != null
-          ? `<span class="ch-badge">${ch.number}</span>`
-          : ''}
-        <span class="ch-title">${escapeHtml(ch.title)}</span>
-      </div>
-      <audio
-        controls
-        preload="none"
-        src="/audio/${currentJobId}${chParam}"
-        class="audio-player"
-        aria-label="Audio for ${escapeHtml(ch.title)}"
-      ></audio>
-      <div class="audio-card-actions">
-        <a
-          href="/download/${currentJobId}${chParam}"
-          class="btn btn-secondary btn-download"
-          download
-        >⬇ Download MP3</a>
-      </div>`;
+
+    // Header
+    const header = document.createElement('div');
+    header.className = 'audio-card-header';
+    if (ch.number != null) {
+      const badge = document.createElement('span');
+      badge.className   = 'ch-badge';
+      badge.textContent = ch.number;
+      header.appendChild(badge);
+    }
+    const chTitle = document.createElement('span');
+    chTitle.className   = 'ch-title';
+    chTitle.textContent = ch.title;   // textContent — no XSS risk
+    header.appendChild(chTitle);
+
+    // Audio player — src is /audio/{uuid}?chapter=N, fully server-controlled
+    const audio = document.createElement('audio');
+    audio.controls  = true;
+    audio.preload   = 'none';
+    audio.src       = `/audio/${currentJobId}${chParam}`;
+    audio.className = 'audio-player';
+    audio.setAttribute('aria-label', `Audio for chapter ${ch.number ?? ''}`);
+
+    // Download link
+    const actions = document.createElement('div');
+    actions.className = 'audio-card-actions';
+    const link = document.createElement('a');
+    link.href       = `/download/${currentJobId}${chParam}`;
+    link.className  = 'btn btn-secondary btn-download';
+    link.download   = true;
+    link.textContent = '⬇ Download MP3';
+    actions.appendChild(link);
+
+    card.append(header, audio, actions);
     list.appendChild(card);
   });
 }
