@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lector — Intelligent Audiobook Reader</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="logo">
+        <span class="logo-icon">◎</span>
+        <span class="logo-name">Lector</span>
+      </div>
+      <span class="logo-tagline">Intelligent Audiobook Reader</span>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- ═══════════════════════════════════════════════════════
+         SCREEN 1: Upload
+    ════════════════════════════════════════════════════════ -->
+    <div id="screen-upload" class="screen active">
+      <div class="screen-inner upload-screen">
+        <h1 class="hero-title">Turn any book into<br/>natural audio</h1>
+        <p class="hero-sub">Upload a PDF or EPUB — Lector reads it like a human narrator.</p>
+
+        <div id="drop-zone" class="drop-zone" role="button" tabindex="0"
+             aria-label="Upload PDF or EPUB file">
+          <div class="drop-icon" aria-hidden="true">📖</div>
+          <p class="drop-primary">Drop your book here</p>
+          <p class="drop-secondary">PDF or EPUB &nbsp;·&nbsp; drag &amp; drop or click to browse</p>
+          <button class="btn btn-secondary" type="button"
+                  onclick="document.getElementById('file-input').click()">
+            Choose file
+          </button>
+          <input type="file" id="file-input" accept=".pdf,.epub" hidden aria-hidden="true" />
+        </div>
+
+        <div id="upload-status" class="upload-status hidden">
+          <span class="spinner" aria-hidden="true"></span>
+          <span id="upload-status-text">Uploading…</span>
+        </div>
+
+        <div id="error-banner" class="error-banner hidden" role="alert">
+          <span id="error-text"></span>
+          <button class="error-close" onclick="hideError()" aria-label="Dismiss error">×</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════
+         SCREEN 2: Chapter selection
+    ════════════════════════════════════════════════════════ -->
+    <div id="screen-chapters" class="screen hidden">
+      <div class="screen-inner chapters-screen">
+        <div class="chapters-header">
+          <button class="btn-back" onclick="backToUpload()" aria-label="Go back">
+            ← Back
+          </button>
+          <div class="chapters-title-block">
+            <h2 id="book-name-display" class="book-name"></h2>
+            <span id="chapter-count-display" class="chapter-count"></span>
+          </div>
+        </div>
+
+        <div class="options-row">
+          <div class="voice-group">
+            <label class="field-label" for="voice-select">Voice</label>
+            <select id="voice-select" class="voice-select"></select>
+          </div>
+          <label class="checkbox-label select-all-label">
+            <input type="checkbox" id="select-all" checked />
+            <span>Select all</span>
+          </label>
+        </div>
+
+        <div id="chapter-list" class="chapter-list" role="list"></div>
+
+        <div class="generate-row">
+          <button id="generate-btn" class="btn btn-primary btn-large"
+                  onclick="startSynthesis()">
+            Generate Audio
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════
+         SCREEN 3: Progress
+    ════════════════════════════════════════════════════════ -->
+    <div id="screen-progress" class="screen hidden">
+      <div class="screen-inner progress-screen">
+        <h2 class="progress-title">Generating your audiobook…</h2>
+
+        <div class="status-pill" id="status-pill">analyzing</div>
+
+        <p id="progress-message" class="progress-message">Starting…</p>
+
+        <div class="progress-track" role="progressbar"
+             aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"
+             id="progress-track">
+          <div class="progress-fill" id="progress-fill"></div>
+        </div>
+
+        <p id="progress-pct" class="progress-pct">0%</p>
+
+        <p class="progress-note">This may take a few minutes for long chapters.</p>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════
+         SCREEN 4: Result
+    ════════════════════════════════════════════════════════ -->
+    <div id="screen-result" class="screen hidden">
+      <div class="screen-inner result-screen">
+        <div class="result-header">
+          <div>
+            <h2 class="result-title">Your audiobook is ready</h2>
+            <p class="result-sub" id="result-sub"></p>
+          </div>
+          <button class="btn btn-secondary" onclick="convertAnother()">
+            Convert another book
+          </button>
+        </div>
+
+        <div id="audio-list" class="audio-list"></div>
+      </div>
+    </div>
+
+  </main>
+
+  <footer class="site-footer">
+    <span>Powered by Microsoft Edge Neural TTS · 100% free · no API key needed</span>
+  </footer>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

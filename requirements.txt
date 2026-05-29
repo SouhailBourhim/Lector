@@ -1,3 +1,11 @@
+# Web server
+fastapi>=0.111.0
+uvicorn[standard]>=0.29.0
+python-multipart>=0.0.9
+aiofiles>=23.2.1
+jinja2>=3.1.0
+
+# Core
 edge-tts>=6.1.12
 PyMuPDF>=1.23.0
 ebooklib>=0.18
