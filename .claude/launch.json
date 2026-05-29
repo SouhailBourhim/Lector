@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "lector",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": ["-c", "cd /Users/apple/Desktop/Lector && /opt/homebrew/bin/python3.11 -m uvicorn server:app --port $PORT --loop asyncio --http h11"],
+      "port": 8000,
+      "autoPort": true
+    }
+  ]
+}
