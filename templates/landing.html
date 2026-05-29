@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Lector — Audiobooks that sound human</title>
+<meta name="description" content="Lector turns any PDF or EPUB into natural-sounding audio — reading each sentence with the pace, tone, and pauses of a real narrator. Free and open source." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300..600;1,6..72,300..600&family=Spectral:ital,wght@0,300;0,400;0,500;1,400&family=Libre+Baskerville:ital@0;1&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/static/site.css" />
+</head>
+<body>
+
+<!-- ═══════════ Header ═══════════ -->
+<header class="site-header" id="header">
+  <div class="nav-inner">
+    <a class="brand" href="/" aria-label="Lector home">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 30 30" fill="none">
+          <circle cx="15" cy="15" r="13.5" stroke="var(--accent)" stroke-width="1.4"/>
+          <rect x="9"  y="12" width="2.1" height="6"  rx="1" fill="var(--accent)"/>
+          <rect x="13.5" y="8.5" width="2.1" height="13" rx="1" fill="var(--accent-2)"/>
+          <rect x="18" y="11" width="2.1" height="8"  rx="1" fill="var(--accent)"/>
+        </svg>
+      </span>
+      <span class="brand-name">Lector</span>
+    </a>
+    <nav class="nav-links">
+      <a href="#prosody">How it sounds</a>
+      <a href="#how">How it works</a>
+      <a href="#features">Features</a>
+      <a href="#voices">Voices</a>
+    </nav>
+    <div class="nav-right">
+      <a class="nav-gh" href="https://github.com/SouhailBourhim/Lector" target="_blank" rel="noopener" aria-label="GitHub">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.5 2 2 6.6 2 12.2c0 4.5 2.9 8.3 6.8 9.6.5.1.7-.2.7-.5v-1.7c-2.8.6-3.4-1.4-3.4-1.4-.5-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.6 2.4 1.1 3 .9.1-.7.4-1.1.6-1.4-2.2-.3-4.6-1.1-4.6-5 0-1.1.4-2 1-2.7-.1-.3-.4-1.3.1-2.7 0 0 .8-.3 2.7 1a9.3 9.3 0 0 1 5 0c1.9-1.3 2.7-1 2.7-1 .5 1.4.2 2.4.1 2.7.6.7 1 1.6 1 2.7 0 3.9-2.4 4.7-4.6 5 .4.3.7.9.7 1.9v2.8c0 .3.2.6.7.5 3.9-1.3 6.8-5.1 6.8-9.6C22 6.6 17.5 2 12 2Z"/></svg>
+        <span>Star</span>
+      </a>
+      <a class="btn btn-primary" href="/app">Try it free</a>
+    </div>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- ═══════════ Hero ═══════════ -->
+  <section class="hero wrap" id="try">
+    <div class="eyebrow reveal">Free &amp; open source · Neural narration</div>
+    <h1 class="reveal">Audiobooks that<br/>sound <span class="ital">human.</span></h1>
+    <p class="hero-sub reveal">Lector turns any PDF or EPUB into natural-sounding audio — reading each sentence with the pace, tone, and pauses of a real narrator. No robotic monotone. No API keys. No cost.</p>
+    <div class="hero-cta reveal">
+      <a class="btn btn-primary" href="/app">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0-12 4 4m-4-4-4 4M5 21h14"/></svg>
+        Upload a book
+      </a>
+      <a class="btn btn-ghost" href="#prosody">Hear how it sounds</a>
+    </div>
+    <p class="hero-note reveal"><b>PDF &amp; EPUB</b> · 8 neural voices · <b>100% free</b> — runs on your machine</p>
+
+    <!-- hero player demo -->
+    <div class="player reveal" id="hero-player">
+      <div class="player-top">
+        <div class="player-cover">L</div>
+        <div class="player-meta">
+          <div class="player-title">The Simpsons and Their Mathematical Secrets</div>
+          <div class="player-byline">Chapter 3 · en-GB-Sonia · 24 min</div>
+        </div>
+        <button class="player-play" id="hero-play" aria-label="Play sample">
+          <svg class="ico-play" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+          <svg class="ico-pause" viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>
+        </button>
+      </div>
+      <div class="wavebar" id="hero-wave"></div>
+      <div class="player-scrub"><span id="hero-time">00:00</span><span>24:18</span></div>
+    </div>
+
+    <div class="hero-logos reveal">
+      <span class="lbl">Reads your whole library</span>
+      <div class="fmt-row">
+        <span>PDF</span><span class="dot"></span>
+        <span>EPUB</span><span class="dot"></span>
+        <span>Textbooks</span><span class="dot"></span>
+        <span>Novels</span><span class="dot"></span>
+        <span>Papers</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ Prosody dissection (signature) ═══════════ -->
+  <section class="prosody wrap" id="prosody">
+    <div class="section-head center reveal">
+      <div class="eyebrow" style="justify-content:center">The difference is in the details</div>
+      <h2>It doesn't just read words.<br/>It <span class="ital amber">understands</span> the sentence.</h2>
+      <p>Most text-to-speech flattens everything into one robotic monotone. Lector analyzes each sentence's structure — then adjusts its pace, pitch, and pauses to read like a person who actually understands what they're saying.</p>
+    </div>
+
+    <div class="prosody-grid">
+      <div class="dissect reveal" id="dissect">
+        <div class="dissect-head">
+          <span class="lhs"><span class="live-dot"></span> Live prosody analysis</span>
+          <button class="replay" id="dissect-replay">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
+            Replay
+          </button>
+        </div>
+
+        <p class="sentence" id="sentence">
+          <span class="tok" data-dur="900" data-tag="title · −20% slower">Chapter Nine</span><span class="pause-mark" data-pause="900"> — </span><span class="tok" data-dur="1500" data-tag="complex clause · −15%">and so, with every variable accounted for,</span> <span class="tok" data-dur="700">she paused</span><span class="pause-mark" data-pause="1000">… </span><span class="tok" data-dur="800" data-tag="speech verb">then asked,</span> <span class="tok" data-dur="900" data-tag="dialogue · question · +pause">"Are you certain?"</span>
+        </p>
+
+        <div class="dissect-wave" id="dissect-wave"></div>
+
+        <div class="dissect-foot">
+          <div class="dissect-legend">
+            <span><i style="background:var(--accent-2)"></i>pace shift</span>
+            <span><i style="background:var(--accent-deep)"></i>pause inserted</span>
+            <span><i style="background:var(--line)"></i>baseline</span>
+          </div>
+          <span class="lhs" style="font-family:var(--mono);font-size:11px;color:var(--muted)" id="dissect-readout">tap replay to watch</span>
+        </div>
+      </div>
+
+      <div class="compare reveal">
+        <div class="cmp bad">
+          <div class="cmp-h">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="9" width="16" height="6" rx="1"/></svg>
+            Ordinary TTS
+          </div>
+          <p>Flat. Even. Mechanical. Every word the same length, every sentence the same shape.</p>
+          <div class="flatwave" id="flatwave"></div>
+        </div>
+        <div class="cmp good">
+          <div class="cmp-h">
+            <span class="brand-mark" style="width:14px;height:14px"><svg viewBox="0 0 30 30" fill="none" style="width:14px;height:14px"><rect x="9"  y="12" width="2.4" height="6"  rx="1" fill="currentColor"/><rect x="13.5" y="8.5" width="2.4" height="13" rx="1" fill="currentColor"/><rect x="18" y="11" width="2.4" height="8"  rx="1" fill="currentColor"/></svg></span>
+            Lector
+          </div>
+          <p>Alive. Breathing. It lingers on weight, races through action, and pauses where you would.</p>
+          <div class="humanwave" id="humanwave"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ How it works ═══════════ -->
+  <section class="section wrap" id="how">
+    <div class="section-head reveal">
+      <div class="eyebrow">From page to playback</div>
+      <h2>Three steps. A few minutes.<br/>An audiobook of your own.</h2>
+    </div>
+    <div class="steps">
+      <div class="step reveal">
+        <div class="step-num">STEP 01</div>
+        <div class="step-ico">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0-12 4 4m-4-4-4 4M5 21h14"/></svg>
+        </div>
+        <h3>Drop in a book</h3>
+        <p>Upload any PDF or EPUB. Lector parses the layout — font sizes, headings, bold and italics — to understand the book's structure, then lists every chapter.</p>
+        <div class="step-line"></div>
+      </div>
+      <div class="step reveal">
+        <div class="step-num">STEP 02</div>
+        <div class="step-ico">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h10M4 12h16M4 18h7"/><circle cx="18" cy="6" r="2"/><circle cx="15" cy="18" r="2"/></svg>
+        </div>
+        <h3>It reads the structure</h3>
+        <p>A linguistic engine scores each sentence — clauses, dialogue, complexity, punctuation — and assigns natural pacing and pauses, sentence by sentence.</p>
+        <div class="step-line"></div>
+      </div>
+      <div class="step reveal">
+        <div class="step-num">STEP 03</div>
+        <div class="step-ico">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10v4M7 7v10M11 4v16M15 8v8M19 11v2"/></svg>
+        </div>
+        <h3>Listen as it builds</h3>
+        <p>Chapters appear the moment they're ready — press play on chapter one while the rest still synthesize. Stream it, or download for the road.</p>
+        <div class="step-line"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ Features ═══════════ -->
+  <section class="section wrap" id="features" style="padding-top:0">
+    <div class="section-head reveal">
+      <div class="eyebrow">Everything in the box</div>
+      <h2>Quietly powerful,<br/>start to finish.</h2>
+    </div>
+    <div class="feat-grid">
+      <div class="feat reveal">
+        <div class="feat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg></div>
+        <h3>PDF &amp; EPUB</h3>
+        <p>Layout-aware parsing detects headings, emphasis and chapter breaks — not just a flat wall of text.</p>
+      </div>
+      <div class="feat reveal">
+        <div class="feat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v3"/></svg></div>
+        <h3>8 neural voices</h3>
+        <p>American, British, Australian, Canadian and Indian English — male and female, all natural-sounding.</p>
+      </div>
+      <div class="feat reveal">
+        <div class="feat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h3l2-7 4 18 3-11 2 5h6"/></svg></div>
+        <h3>Natural prosody</h3>
+        <p>Dialogue lifts, complex lines slow, ellipses breathe. Pacing and pauses tuned per sentence.</p>
+      </div>
+      <div class="feat reveal">
+        <div class="feat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h8l-1 8 10-12h-8l1-8Z"/></svg></div>
+        <h3>Progressive audio</h3>
+        <p>Chapters stream in as they finish. Start listening to chapter one while the rest are still cooking.</p>
+      </div>
+      <div class="feat reveal">
+        <div class="feat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.7 4 3 9 3s9-1.3 9-3V5"/><path d="M3 12c0 1.7 4 3 9 3s9-1.3 9-3"/></svg></div>
+        <h3>Instant re-runs</h3>
+        <p>A local disk cache makes re-converting the same chapter with the same voice instant. No wasted work.</p>
+      </div>
+      <div class="feat reveal">
+        <div class="feat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
+        <h3>100% free</h3>
+        <p>No subscriptions, no paid APIs, no account. Open source and runs entirely on your own machine.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ Voices ═══════════ -->
+  <section class="section wrap" id="voices">
+    <div class="section-head reveal" style="margin-bottom:8px">
+      <div class="eyebrow">Find your narrator</div>
+      <h2>Eight voices.<br/>Five English accents.</h2>
+    </div>
+    <div class="voices-inner">
+      <div class="voice-list reveal" id="voice-list">
+        <!-- filled by JS -->
+      </div>
+      <div class="voice-stage reveal" id="voice-stage">
+        <div>
+          <div class="voice-stage-flag" id="vs-flag">🇬🇧</div>
+          <div class="voice-stage-name" id="vs-name">Sonia</div>
+          <div class="voice-stage-meta" id="vs-meta">British English · Female</div>
+        </div>
+        <div class="voice-stage-wave" id="vs-wave"></div>
+        <p class="voice-quote" id="vs-quote">"It was the best of times, it was the worst of times…"</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ Showcase ═══════════ -->
+  <section class="showcase wrap">
+    <div class="section-head center reveal">
+      <div class="eyebrow" style="justify-content:center">The app</div>
+      <h2>Upload, pick, press play.</h2>
+      <p>A clean two-panel workspace. Choose chapters and a voice on the left; watch your audiobook build on the right.</p>
+    </div>
+    <div class="window reveal">
+      <div class="win-bar">
+        <span class="win-dot" style="background:#ff5f57"></span>
+        <span class="win-dot" style="background:#febc2e"></span>
+        <span class="win-dot" style="background:#28c840"></span>
+        <span class="win-url">lector.app</span>
+      </div>
+      <div class="win-body">
+        <aside class="mock-aside">
+          <div>
+            <div class="mock-book">The Simpsons and Their Mathematical Secrets</div>
+            <div class="mock-chapcount">12 chapters detected</div>
+          </div>
+          <div class="mock-field-lbl">Voice</div>
+          <div class="mock-select">en-GB-SoniaNeural <span style="color:#52525b">▾</span></div>
+          <div class="mock-chaps">
+            <div class="mock-chap on"><span class="mock-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span> 1 · Introduction</div>
+            <div class="mock-chap on"><span class="mock-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span> 2 · Bart the Genius</div>
+            <div class="mock-chap on"><span class="mock-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span> 3 · Homer's Last Theorem</div>
+            <div class="mock-chap"><span class="mock-check"></span> 4 · The Puzzle of Mathematics</div>
+            <div class="mock-chap"><span class="mock-check"></span> 5 · The Prime Suspects</div>
+          </div>
+          <div class="mock-gen">Generate Audio</div>
+        </aside>
+        <div class="mock-main">
+          <div class="mock-status">synthesizing · 67%</div>
+          <div class="mock-ring">
+            <svg viewBox="0 0 120 120" width="120" height="120">
+              <circle cx="60" cy="60" r="52" fill="none" stroke="#27272a" stroke-width="8"/>
+              <circle cx="60" cy="60" r="52" fill="none" stroke="var(--accent)" stroke-width="8" stroke-linecap="round" stroke-dasharray="326.7" stroke-dashoffset="107.8"/>
+            </svg>
+            <div class="mock-ring-pct">67%</div>
+          </div>
+          <div class="mock-cardrow">
+            <div class="mock-acard">
+              <span class="ac-play"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span>
+              <span class="ac-wave" id="ac-wave-1"></span>
+              <span class="ac-title">Ch 1</span>
+            </div>
+            <div class="mock-acard">
+              <span class="ac-play"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span>
+              <span class="ac-wave" id="ac-wave-2"></span>
+              <span class="ac-title">Ch 2</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ OSS / Free ═══════════ -->
+  <div class="oss-wrap reveal">
+    <section class="oss">
+      <div class="oss-inner">
+        <div>
+          <div class="eyebrow">Free, forever</div>
+          <h2>The whole thing is yours.</h2>
+          <p>Lector is open source and runs on your own machine. No paid APIs, no cloud lock-in, no usage caps — just clone it, point it at a book, and listen.</p>
+          <div class="oss-cta">
+            <a class="btn btn-primary" href="https://github.com/SouhailBourhim/Lector" target="_blank" rel="noopener">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.5 2 2 6.6 2 12.2c0 4.5 2.9 8.3 6.8 9.6.5.1.7-.2.7-.5v-1.7c-2.8.6-3.4-1.4-3.4-1.4-.5-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.6 2.4 1.1 3 .9.1-.7.4-1.1.6-1.4-2.2-.3-4.6-1.1-4.6-5 0-1.1.4-2 1-2.7-.1-.3-.4-1.3.1-2.7 0 0 .8-.3 2.7 1a9.3 9.3 0 0 1 5 0c1.9-1.3 2.7-1 2.7-1 .5 1.4.2 2.4.1 2.7.6.7 1 1.6 1 2.7 0 3.9-2.4 4.7-4.6 5 .4.3.7.9.7 1.9v2.8c0 .3.2.6.7.5 3.9-1.3 6.8-5.1 6.8-9.6C22 6.6 17.5 2 12 2Z"/></svg>
+              View on GitHub
+            </a>
+            <a class="btn btn-ghost" href="/app">Try the app</a>
+          </div>
+        </div>
+        <div class="oss-stats">
+          <div class="oss-stat"><div class="n">$0</div><div class="l">Cost, all in</div></div>
+          <div class="oss-stat"><div class="n">8</div><div class="l">Neural voices</div></div>
+          <div class="oss-stat"><div class="n">MIT</div><div class="l">Licensed &amp; open</div></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ═══════════ Finale ═══════════ -->
+  <section class="finale wrap">
+    <h2 class="reveal">Give your library<br/>a <span class="ital">voice.</span></h2>
+    <p class="reveal">Your next chapter is one upload away.</p>
+    <div class="hero-cta reveal">
+      <a class="btn btn-primary" href="/app">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0-12 4 4m-4-4-4 4M5 21h14"/></svg>
+        Upload a book
+      </a>
+      <a class="btn btn-ghost" href="#voices">Browse voices</a>
+    </div>
+  </section>
+
+</main>
+
+<!-- ═══════════ Footer ═══════════ -->
+<footer class="site-footer wrap">
+  <div class="footer-inner">
+    <div class="foot-brand">
+      <a class="brand" href="/">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 30 30" fill="none">
+            <circle cx="15" cy="15" r="13.5" stroke="var(--accent)" stroke-width="1.4"/>
+            <rect x="9"  y="12" width="2.1" height="6"  rx="1" fill="var(--accent)"/>
+            <rect x="13.5" y="8.5" width="2.1" height="13" rx="1" fill="var(--accent-2)"/>
+            <rect x="18" y="11" width="2.1" height="8"  rx="1" fill="var(--accent)"/>
+          </svg>
+        </span>
+        <span class="brand-name">Lector</span>
+      </a>
+      <p>An intelligent audiobook reader that reads like a human narrator — free, open source, and yours.</p>
+    </div>
+    <div class="foot-cols">
+      <div class="foot-col">
+        <h4>Product</h4>
+        <a href="#prosody">How it sounds</a>
+        <a href="#how">How it works</a>
+        <a href="#features">Features</a>
+        <a href="#voices">Voices</a>
+      </div>
+      <div class="foot-col">
+        <h4>Open source</h4>
+        <a href="https://github.com/SouhailBourhim/Lector" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://github.com/SouhailBourhim/Lector#readme" target="_blank" rel="noopener">Documentation</a>
+        <a href="https://github.com/SouhailBourhim/Lector#readme" target="_blank" rel="noopener">CLI reference</a>
+        <a href="https://github.com/SouhailBourhim/Lector#readme" target="_blank" rel="noopener">Deploy guide</a>
+      </div>
+      <div class="foot-col">
+        <h4>App</h4>
+        <a href="/app">Upload a book</a>
+        <a href="/app">Browse voices</a>
+        <a href="https://github.com/SouhailBourhim/Lector/issues" target="_blank" rel="noopener">Report a bug</a>
+      </div>
+    </div>
+  </div>
+  <div class="foot-bottom">
+    <span>© 2026 Lector · MIT License</span>
+    <span>Powered by neural TTS · 100% free · no API key needed</span>
+  </div>
+</footer>
+
+<script>
+/* ═══════════════════════════════════════════════════════════
+   LECTOR — marketing site interactions
+   ═══════════════════════════════════════════════════════════ */
+(function () {
+  "use strict";
+  window.__lectorLoaded = true;
+
+  const $  = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  const rand = (a, b) => a + Math.random() * (b - a);
+
+  /* ── Header scroll state ───────────────────────── */
+  const header = $("#header");
+  const onScroll = () => header.classList.toggle("scrolled", window.scrollY > 12);
+  window.addEventListener("scroll", onScroll, { passive: true });
+  onScroll();
+
+  /* ── Reveal on scroll ──────────────────────────── */
+  const revealEls = $$(".reveal");
+  let groupRef = null, groupBase = 0;
+  revealEls.forEach((el) => {
+    const p = el.parentElement;
+    if (p !== groupRef) { groupRef = p; groupBase = 0; }
+    el.style.transitionDelay = (Math.min(groupBase, 5) * 55) + "ms";
+    groupBase++;
+  });
+  function markIn(el) {
+    el.classList.add("in");
+    setTimeout(() => {
+      el.style.transition = "none";
+      el.style.opacity = "1";
+      el.style.transform = "none";
+    }, 900);
+  }
+  function revealCheck() {
+    const vh = window.innerHeight || document.documentElement.clientHeight;
+    for (const el of revealEls) {
+      if (el.classList.contains("in")) continue;
+      const r = el.getBoundingClientRect();
+      if (r.top < vh * 0.92 && r.bottom > 0) markIn(el);
+    }
+  }
+  window.addEventListener("scroll", revealCheck, { passive: true });
+  window.addEventListener("resize", revealCheck);
+  revealCheck();
+  requestAnimationFrame(revealCheck);
+  setTimeout(revealCheck, 200);
+
+  /* ── Build bar groups ──────────────────────────── */
+  function fillBars(el, n, cls) {
+    if (!el) return [];
+    const frag = document.createDocumentFragment();
+    const bars = [];
+    const tag = cls === "bar" ? "div" : "i";
+    for (let i = 0; i < n; i++) {
+      const b = document.createElement(tag);
+      if (cls === "bar") b.className = "bar";
+      frag.appendChild(b);
+      bars.push(b);
+    }
+    el.appendChild(frag);
+    return bars;
+  }
+
+  /* ── Hero player waveform ──────────────────────── */
+  const heroWave = $("#hero-wave");
+  const HERO_N = 76;
+  const heroBars = fillBars(heroWave, HERO_N, "bar");
+  const heroEnv = heroBars.map((b, i) => {
+    const t = i / HERO_N;
+    const env = Math.sin(t * Math.PI) * 0.7 + 0.3;
+    const h = Math.max(8, (env * rand(0.4, 1)) * 100);
+    b.style.height = h + "%";
+    return h;
+  });
+
+  let heroPlaying = false, heroProg = 0, heroTimer = null;
+  const heroPlayBtn = $("#hero-play");
+  const heroTime = $("#hero-time");
+  const TOTAL = 24 * 60 + 18;
+
+  function paintHero() {
+    const cut = Math.floor(heroProg * HERO_N);
+    heroBars.forEach((b, i) => b.classList.toggle("on", i < cut));
+  }
+  function fmt(s) {
+    const m = Math.floor(s / 60), sec = Math.floor(s % 60);
+    return String(m).padStart(2, "0") + ":" + String(sec).padStart(2, "0");
+  }
+  function heroTick() {
+    heroProg += 0.0016;
+    if (heroProg >= 1) heroProg = 0;
+    heroTime.textContent = fmt(heroProg * TOTAL);
+    const cut = Math.floor(heroProg * HERO_N);
+    heroBars.forEach((b, i) => {
+      if (Math.abs(i - cut) < 3) b.style.height = Math.max(8, heroEnv[i] * rand(0.7, 1.25)) + "%";
+      else b.style.height = heroEnv[i] + "%";
+    });
+    paintHero();
+  }
+  function setHeroPlaying(p) {
+    heroPlaying = p;
+    heroPlayBtn.classList.toggle("playing", p);
+    if (p) { heroTimer = setInterval(heroTick, 60); }
+    else { clearInterval(heroTimer); }
+  }
+  if (heroPlayBtn) heroPlayBtn.addEventListener("click", () => setHeroPlaying(!heroPlaying));
+  paintHero();
+
+  /* ── Compare mini-waves ────────────────────────── */
+  const flatBars = fillBars($("#flatwave"), 34, "i");
+  flatBars.forEach((b) => (b.style.height = "30%"));
+  const humanBars = fillBars($("#humanwave"), 34, "i");
+  humanBars.forEach((b, i) => {
+    const t = i / 34;
+    const env = Math.sin(t * Math.PI * 1.4) * 0.6 + 0.4;
+    b.style.height = Math.max(14, env * rand(0.5, 1) * 100) + "%";
+  });
+  setInterval(() => {
+    humanBars.forEach((b, i) => {
+      const t = i / 34;
+      const env = Math.sin(t * Math.PI * 1.4 + Date.now() / 600) * 0.45 + 0.5;
+      b.style.height = Math.max(14, env * 100) + "%";
+    });
+  }, 120);
+
+  /* ── Showcase mini waves ───────────────────────── */
+  ["#ac-wave-1", "#ac-wave-2"].forEach((sel) => {
+    const el = $(sel);
+    if (!el) return;
+    const bars = fillBars(el, 26, "i");
+    bars.forEach((b, i) => {
+      const env = Math.sin((i / 26) * Math.PI) * 0.7 + 0.3;
+      b.style.height = Math.max(20, env * rand(0.4, 1) * 100) + "%";
+    });
+  });
+
+  /* ── Prosody dissection animation ──────────────── */
+  const sentence = $("#sentence");
+  const dWave = $("#dissect-wave");
+  const readout = $("#dissect-readout");
+  const replay = $("#dissect-replay");
+  const D_N = 64;
+  const dBars = fillBars(dWave, D_N, "i");
+  const nodes = sentence ? [...sentence.children] : [];
+
+  const READOUTS = {
+    "title · −20% slower": "↓ rate −20%   ·   adds a 3s beat after the heading",
+    "complex clause · −15%": "↓ rate −15%   ·   long clause, dense with sub-phrases",
+    "speech verb": "detects a speech cue — leans into the line that follows",
+    "dialogue · question · +pause": "± pitch on dialogue   ·   +500ms after the question",
+  };
+
+  let animTimer = null;
+  function clearAnim() {
+    if (animTimer) { clearTimeout(animTimer); animTimer = null; }
+    nodes.forEach(n => n.classList.remove("active"));
+  }
+
+  function setWave(level, spread) {
+    for (let i = 0; i < D_N; i++) {
+      const c = D_N / 2;
+      const fall = 1 - Math.min(1, Math.abs(i - c) / (spread || 20));
+      const h = level <= 0 ? 8 : Math.max(6, (level * fall * rand(0.55, 1)) * 100);
+      dBars[i].style.height = h + "%";
+      dBars[i].style.background = level <= 0 ? "var(--line)"
+        : (level > 0.66 ? "var(--accent-2)" : "var(--accent-deep)");
+    }
+  }
+
+  function runDissect() {
+    clearAnim();
+    let idx = 0;
+    nodes.forEach(n => n.classList.remove("spoken"));
+    if (readout) readout.textContent = "reading…";
+
+    function step() {
+      if (idx >= nodes.length) {
+        setWave(0);
+        if (readout) readout.textContent = "✓ one sentence — five distinct shapes";
+        nodes.forEach(n => n.classList.add("spoken"));
+        return;
+      }
+      const node = nodes[idx];
+      const isPause = node.classList.contains("pause-mark");
+
+      if (isPause) {
+        const dur = +node.dataset.pause || 600;
+        node.classList.add("active");
+        setWave(0);
+        if (readout) readout.textContent = "⏸ pause · " + dur + "ms";
+        animTimer = setTimeout(() => {
+          node.classList.remove("active");
+          idx++; step();
+        }, Math.min(dur, 1100) * 0.7 + 180);
+      } else {
+        const dur = +node.dataset.dur || 700;
+        const tag = node.dataset.tag;
+        node.classList.add("active");
+        node.classList.add("spoken");
+        let level = 0.72;
+        if (tag && tag.includes("slower")) level = 0.5;
+        else if (tag && tag.includes("−15")) level = 0.58;
+        else if (tag && tag.includes("dialogue")) level = 0.92;
+        if (readout) readout.textContent = tag ? (READOUTS[tag] || tag) : "↳ baseline narration";
+
+        let ticks = 0;
+        const maxTicks = Math.round(dur / 70);
+        const wv = setInterval(() => {
+          setWave(level + Math.sin(ticks) * 0.06, 26);
+          ticks++;
+          if (ticks > maxTicks) clearInterval(wv);
+        }, 70);
+
+        animTimer = setTimeout(() => {
+          clearInterval(wv);
+          node.classList.remove("active");
+          idx++; step();
+        }, dur * 0.62 + 220);
+      }
+    }
+    step();
+  }
+
+  setWave(0);
+  if (replay) replay.addEventListener("click", runDissect);
+  let dissectRan = false;
+  function dissectCheck() {
+    if (dissectRan) return;
+    const card = $("#dissect");
+    if (!card) return;
+    const vh = window.innerHeight || document.documentElement.clientHeight;
+    const r = card.getBoundingClientRect();
+    if (r.top < vh * 0.7 && r.bottom > 0) { dissectRan = true; setTimeout(runDissect, 450); }
+  }
+  window.addEventListener("scroll", dissectCheck, { passive: true });
+  dissectCheck();
+  setTimeout(dissectCheck, 300);
+
+  /* ── Voices picker ─────────────────────────────── */
+  const VOICES = [
+    { id: "Aria",    flag: "🇺🇸", accent: "American English",   gender: "Female", quote: "“Call me Ishmael. Some years ago — never mind how long precisely…”", def: true },
+    { id: "Guy",     flag: "🇺🇸", accent: "American English",   gender: "Male",   quote: "“It was a bright cold day in April, and the clocks were striking thirteen.”" },
+    { id: "Sonia",   flag: "🇬🇧", accent: "British English",    gender: "Female", quote: "“It was the best of times, it was the worst of times…”" },
+    { id: "Ryan",    flag: "🇬🇧", accent: "British English",    gender: "Male",   quote: "“It is a truth universally acknowledged, that a single man…”" },
+    { id: "Natasha", flag: "🇦🇺", accent: "Australian English", gender: "Female", quote: "“The sky above the port was the colour of television, tuned to a dead channel.”" },
+    { id: "William", flag: "🇦🇺", accent: "Australian English", gender: "Male",   quote: "“All happy families are alike; each unhappy family is unhappy in its own way.”" },
+    { id: "Clara",   flag: "🇨🇦", accent: "Canadian English",  gender: "Female", quote: "“In a hole in the ground there lived a hobbit.”" },
+    { id: "Neerja",  flag: "🇮🇳", accent: "Indian English",     gender: "Female", quote: "“The past is a foreign country; they do things differently there.”" },
+  ];
+
+  const list = $("#voice-list");
+  const vsFlag = $("#vs-flag"), vsName = $("#vs-name"), vsMeta = $("#vs-meta"), vsQuote = $("#vs-quote");
+  const vsWave = $("#vs-wave");
+  const vsBars = fillBars(vsWave, 48, "i");
+  let vsTimer = null;
+
+  function paintVsWave(active) {
+    clearInterval(vsTimer);
+    if (active) {
+      vsTimer = setInterval(() => {
+        vsBars.forEach((b, i) => {
+          const env = Math.sin((i / 48) * Math.PI) * 0.7 + 0.3;
+          const h = Math.max(10, env * rand(0.4, 1.1) * 100);
+          b.style.height = h + "%";
+          b.style.background = "linear-gradient(180deg,var(--accent-2),var(--accent-deep))";
+        });
+      }, 110);
+    } else {
+      vsBars.forEach((b, i) => {
+        const env = Math.sin((i / 48) * Math.PI) * 0.6 + 0.25;
+        b.style.height = Math.max(10, env * 60) + "%";
+        b.style.background = "var(--line)";
+      });
+    }
+  }
+
+  let selVoice = 2;
+  function selectVoice(i, fromClick) {
+    selVoice = i;
+    const v = VOICES[i];
+    if (vsFlag) vsFlag.textContent = v.flag;
+    if (vsName) vsName.textContent = v.id;
+    if (vsMeta) vsMeta.textContent = v.accent + " · " + v.gender;
+    if (vsQuote) vsQuote.textContent = v.quote;
+    $$(".voice", list).forEach((el, k) => el.classList.toggle("sel", k === i));
+    if (fromClick) {
+      paintVsWave(true);
+      clearTimeout(selectVoice._t);
+      selectVoice._t = setTimeout(() => paintVsWave(false), 2600);
+    }
+  }
+
+  function accentCode(a) {
+    return a.startsWith("American") ? "US" : a.startsWith("British") ? "GB" :
+           a.startsWith("Australian") ? "AU" : a.startsWith("Canadian") ? "CA" : "IN";
+  }
+
+  if (list) {
+    VOICES.forEach((v, i) => {
+      const btn = document.createElement("button");
+      btn.className = "voice" + (i === selVoice ? " sel" : "");
+      btn.innerHTML =
+        '<span class="voice-flag">' + v.flag + '</span>' +
+        '<span class="voice-info"><span class="voice-name">' + v.id + (v.def ? ' · default' : '') + '</span>' +
+        '<span class="voice-desc">en-' + accentCode(v.accent) + '-' + v.id + 'Neural</span></span>' +
+        '<span class="voice-play"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span>';
+      btn.addEventListener("click", () => selectVoice(i, true));
+      list.appendChild(btn);
+    });
+  }
+
+  selectVoice(selVoice, false);
+  paintVsWave(false);
+
+})();
+</script>
+
+<script>
+  /* failsafe — never leave the page blank if scroll reveal is slow */
+  (function () {
+    function revealAll() {
+      document.querySelectorAll('.reveal:not(.in)').forEach(function (e) {
+        e.classList.add('in');
+        e.style.opacity = '1';
+        e.style.transform = 'none';
+      });
+    }
+    setTimeout(function () { if (!window.__lectorLoaded) revealAll(); }, 1600);
+    setTimeout(revealAll, 3000);
+  })();
+</script>
+</body>
+</html>

@@ -168,6 +168,11 @@ async def health():
 
 
 @app.get("/")
+async def landing(request: Request):
+    return templates.TemplateResponse(request=request, name="landing.html")
+
+
+@app.get("/app")
 async def index(request: Request):
     return templates.TemplateResponse(request=request, name="index.html")
 
