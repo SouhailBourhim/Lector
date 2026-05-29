@@ -43,12 +43,30 @@ class TTSEngine:
         return asyncio.run(self._run(segments))
 
     async def _run(self, segments: list[TextSegment]) -> list[bytes]:
-        # Semaphore created here so it's always bound to the current event loop
+        return await self.synthesize_chapter_async(segments)
+
+    async def synthesize_chapter_async(
+        self,
+        segments: list[TextSegment],
+        progress_cb=None,  # Callable[[int, int], None] | None
+    ) -> list[bytes]:
+        """Async version with optional per-segment progress callback.
+
+        progress_cb(completed: int, total: int) is called after each segment.
+        Safe to await directly inside a FastAPI route or background task.
+        """
         semaphore = asyncio.Semaphore(TTS_MAX_CONCURRENCY)
+        total = len(segments)
+        completed = 0
 
         async def _with_sem(seg):
+            nonlocal completed
             async with semaphore:
-                return await _synthesize_one(seg, self.voice)
+                result = await _synthesize_one(seg, self.voice)
+            completed += 1
+            if progress_cb:
+                progress_cb(completed, total)
+            return result
 
         return await asyncio.gather(*[_with_sem(seg) for seg in segments])
 
