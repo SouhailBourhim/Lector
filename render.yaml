@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: lector
+    runtime: docker
+    healthCheckPath: /health
+    envVars:
+      - key: CACHE_DIR
+        value: /var/lector_cache
+      - key: TTS_CONCURRENCY
+        value: "10"
+      - key: MAX_UPLOAD_MB
+        value: "50"
+    disk:
+      name: lector-cache
+      mountPath: /var/lector_cache
+      sizeGB: 5
