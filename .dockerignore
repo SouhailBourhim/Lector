@@ -12,3 +12,5 @@ output/
 .git/
 .gitignore
 README.md
+.claude/
+*.sh

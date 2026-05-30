@@ -382,6 +382,26 @@ function appendAudioCard(ch) {
   chTitle.textContent = ch.title;
   header.appendChild(chTitle);
 
+  // Play / pause button (right-aligned in header)
+  const playBtn = document.createElement('button');
+  playBtn.className = 'card-play-btn';
+  playBtn.setAttribute('aria-label', 'Play');
+  playBtn.innerHTML =
+    '<svg class="ico-play"  viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>' +
+    '<svg class="ico-pause" viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>';
+  header.appendChild(playBtn);
+
+  // Time display
+  const timeLine = document.createElement('div');
+  timeLine.className = 'card-time-line';
+  const timeEl  = document.createElement('span');
+  timeEl.className   = 'card-current-time';
+  timeEl.textContent = '0:00';
+  const durEl   = document.createElement('span');
+  durEl.className   = 'card-duration';
+  durEl.textContent = '--:--';
+  timeLine.append(timeEl, durEl);
+
   // WaveSurfer container
   const waveWrap = document.createElement('div');
   waveWrap.className = 'waveform-wrap';
@@ -420,31 +440,36 @@ function appendAudioCard(ch) {
   link.textContent = '⬇ Download MP3';
   actions.appendChild(link);
 
-  card.append(header, waveWrap, controls, actions);
+  card.append(header, waveWrap, timeLine, controls, actions);
   list.appendChild(card);
 
   // Init WaveSurfer after card is in the DOM
-  requestAnimationFrame(() => initWaveSurfer(waveId, ch.number, audioSrc));
+  requestAnimationFrame(() => initWaveSurfer(waveId, ch.number, audioSrc, playBtn, timeEl, durEl));
 }
 
 // ── WaveSurfer ────────────────────────────────────────────────────────────────
-function initWaveSurfer(containerId, chapterNum, audioSrc) {
+function fmtTime(s) {
+  if (!isFinite(s) || s < 0) return '0:00';
+  const m = Math.floor(s / 60), sec = Math.floor(s % 60);
+  return `${m}:${String(sec).padStart(2, '0')}`;
+}
+
+function initWaveSurfer(containerId, chapterNum, audioSrc, playBtn, timeEl, durEl) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
   if (!window.WaveSurfer) {
     // Fallback: native audio player
-    const container = document.getElementById(containerId);
-    if (!container) return;
     const audio = document.createElement('audio');
     audio.controls  = true;
     audio.preload   = 'none';
     audio.src       = audioSrc;
     audio.className = 'audio-player';
     audio.setAttribute('aria-label', `Audio for chapter ${chapterNum}`);
+    if (playBtn) playBtn.remove();
     container.replaceWith(audio);
     return;
   }
-
-  const container = document.getElementById(containerId);
-  if (!container) return;
 
   try {
     const ws = WaveSurfer.create({
@@ -461,6 +486,26 @@ function initWaveSurfer(containerId, chapterNum, audioSrc) {
       url:           audioSrc,
     });
     wavesurfers[chapterNum] = ws;
+
+    // Wire play button
+    if (playBtn) {
+      playBtn.onclick = () => ws.playPause();
+      ws.on('play',   () => playBtn.classList.add('playing'));
+      ws.on('pause',  () => playBtn.classList.remove('playing'));
+      ws.on('finish', () => playBtn.classList.remove('playing'));
+    }
+
+    // Wire time display
+    ws.on('ready', dur => {
+      if (durEl) durEl.textContent = fmtTime(dur);
+    });
+    ws.on('timeupdate', cur => {
+      if (timeEl) timeEl.textContent = fmtTime(cur);
+    });
+    ws.on('finish', () => {
+      if (timeEl && durEl) timeEl.textContent = '0:00';
+    });
+
   } catch (_) {
     // WaveSurfer failed — render native audio as fallback
     const audio = document.createElement('audio');
@@ -468,6 +513,7 @@ function initWaveSurfer(containerId, chapterNum, audioSrc) {
     audio.preload   = 'none';
     audio.src       = audioSrc;
     audio.className = 'audio-player';
+    if (playBtn) playBtn.remove();
     container.replaceWith(audio);
   }
 }
