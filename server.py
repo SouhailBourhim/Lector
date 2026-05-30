@@ -15,6 +15,7 @@ import sys
 import tempfile
 import time
 import uuid
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -35,10 +36,17 @@ sys.path.insert(0, str(BASE_DIR))
 from config import DEFAULT_VOICE, VOICES  # noqa: E402
 
 # ─── Config from env ──────────────────────────────────────────────────────────
-PORT          = int(os.getenv("PORT", "8000"))
-MAX_UPLOAD_MB = int(os.getenv("MAX_UPLOAD_MB", "50"))
-CACHE_DIR     = Path(os.getenv("CACHE_DIR", "/tmp/lector_cache"))
+PORT            = int(os.getenv("PORT", "8000"))
+MAX_UPLOAD_MB   = int(os.getenv("MAX_UPLOAD_MB", "50"))
+CACHE_DIR       = Path(os.getenv("CACHE_DIR", "/tmp/lector_cache"))
 MAX_JOBS_PER_IP = 3
+MAX_GLOBAL_JOBS = int(os.getenv("MAX_GLOBAL_JOBS", "10"))
+STATIC_VER      = "3"   # bump when static assets (app.js / style.css) change
+
+# CPU-bound work (spaCy, pydub) runs on this explicit pool so it doesn't
+# compete with I/O threads and can't grow unbounded.
+_CPU_WORKERS = max(4, (os.cpu_count() or 4) * 2)
+_cpu_executor = ThreadPoolExecutor(max_workers=_CPU_WORKERS, thread_name_prefix="lector-cpu")
 
 # ─── Logging ──────────────────────────────────────────────────────────────────
 logging.basicConfig(
@@ -92,6 +100,12 @@ def _get_job(job_id: str) -> Job:
 def _client_ip(request: Request) -> str:
     forwarded = request.headers.get("x-forwarded-for", "")
     return forwarded.split(",")[0].strip() if forwarded else (request.client.host if request.client else "unknown")
+
+
+def _total_active_jobs() -> int:
+    """Count jobs that are actively synthesizing (not terminal states)."""
+    active = {"analyzing", "synthesizing", "assembling", "parsing"}
+    return sum(1 for j in jobs.values() if j.status in active)
 
 
 def _active_jobs_for_ip(ip: str) -> int:
@@ -165,7 +179,12 @@ async def _cleanup_loop():
 
 @app.get("/health")
 async def health():
-    return {"status": "ok", "version": "1.0.0"}
+    return {
+        "status": "ok",
+        "version": "1.0.0",
+        "active_jobs": _total_active_jobs(),
+        "cpu_workers": _CPU_WORKERS,
+    }
 
 
 @app.get("/")
@@ -175,7 +194,8 @@ async def landing(request: Request):
 
 @app.get("/app")
 async def index(request: Request):
-    return templates.TemplateResponse(request=request, name="index.html")
+    return templates.TemplateResponse(request=request, name="index.html",
+                                      context={"static_ver": STATIC_VER})
 
 
 # ── Upload ─────────────────────────────────────────────────────────────────────
@@ -227,7 +247,7 @@ async def upload_book(request: Request, file: UploadFile = File(...)):
             from parsers.epub_parser import EPUBParser
             parser = EPUBParser(book_path)
 
-        chapters = await loop.run_in_executor(None, parser.parse)
+        chapters = await loop.run_in_executor(_cpu_executor, parser.parse)
     except Exception as exc:
         job.status = "error"
         job.error  = str(exc)
@@ -272,6 +292,13 @@ async def start_synthesis(job_id: str, req: SynthesizeRequest, request: Request)
         raise HTTPException(
             status_code=429,
             detail=f"Too many active jobs ({active}). Please wait for a current job to finish.",
+        )
+
+    total = _total_active_jobs()
+    if total >= MAX_GLOBAL_JOBS:
+        raise HTTPException(
+            status_code=503,
+            detail="Server is busy — please try again in a minute.",
         )
 
     job.selected_chapters = req.chapters
@@ -350,22 +377,10 @@ def _push(job: Job, payload: dict | None) -> None:
 # ── Audio streaming ────────────────────────────────────────────────────────────
 @app.get("/audio/{job_id}")
 async def stream_audio(job_id: str, chapter: int | None = None):
+    """Serve a chapter MP3 with full Range-request support for WaveSurfer seeking."""
     job  = _get_job(job_id)
     path = _resolve_audio(job, chapter)
-
-    async def _file_stream():
-        async with aiofiles.open(path, "rb") as f:
-            while True:
-                chunk = await f.read(65536)
-                if not chunk:
-                    break
-                yield chunk
-
-    return StreamingResponse(
-        _file_stream(),
-        media_type="audio/mpeg",
-        headers={"Accept-Ranges": "bytes"},
-    )
+    return FileResponse(str(path), media_type="audio/mpeg")
 
 
 # ── Download ──────────────────────────────────────────────────────────────────
@@ -389,12 +404,16 @@ async def download_audio(job_id: str, chapter: int | None = None):
 
 
 def _resolve_audio(job: Job, chapter: int | None) -> Path:
-    if job.status != "done" or not job.audio_paths:
+    """Return the path for a ready chapter; works during progressive synthesis."""
+    if not job.audio_paths:
         raise HTTPException(status_code=404, detail="Audio not ready yet.")
     chap = chapter if chapter is not None else sorted(job.audio_paths.keys())[0]
-    if chap not in job.audio_paths:
-        raise HTTPException(status_code=404, detail=f"Chapter {chap} not available.")
-    return job.audio_paths[chap]
+    path = job.audio_paths.get(chap)
+    if path is None:
+        raise HTTPException(status_code=404, detail=f"Chapter {chap} not available yet.")
+    if not path.exists():
+        raise HTTPException(status_code=404, detail=f"Chapter {chap} file missing.")
+    return path
 
 
 def _safe_filename(s: str) -> str:
@@ -553,7 +572,7 @@ async def _run_synthesis(job_id: str) -> None:
             _push(job, {"status": job.status, "progress": round(job.progress, 4),
                         "message": job.message, "error": None})
 
-            segments = await loop.run_in_executor(None, analyzer.analyze_chapter, chapter)
+            segments = await loop.run_in_executor(_cpu_executor, analyzer.analyze_chapter, chapter)
             job.progress = ch_base + ch_span * 0.10
 
             # ── Synthesis ─────────────────────────────────────────────────
@@ -581,12 +600,12 @@ async def _run_synthesis(job_id: str) -> None:
             _push(job, {"status": job.status, "progress": round(job.progress, 4),
                         "message": job.message, "error": None})
 
-            audio = await loop.run_in_executor(None, assemble_chapter, segments, audio_clips)
+            audio = await loop.run_in_executor(_cpu_executor, assemble_chapter, segments, audio_clips)
             job.progress = ch_base + ch_span * 0.95
 
             # ── Export ────────────────────────────────────────────────────
             audio_path = UPLOAD_DIR / "audio" / f"{job_id}_{chapter.number}.mp3"
-            await loop.run_in_executor(None, export_chapter, audio, audio_path)
+            await loop.run_in_executor(_cpu_executor, export_chapter, audio, audio_path)
 
             _save_to_cache(cache_key, audio_path)
             job.audio_paths[chapter.number] = audio_path
