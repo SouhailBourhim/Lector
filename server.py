@@ -229,14 +229,19 @@ async def upload_book(request: Request, file: UploadFile = File(...)):
     job_id   = Job.new_id()
     book_key = f"books/{job_id}{ext}"
 
-    # Stream to a temporary file so we never hold the whole upload in memory.
-    total = 0
-    limit = MAX_UPLOAD_MB * 1024 * 1024
+    # Stream to a temp file in 64 KB chunks (UploadFile.read() is the correct
+    # async API — UploadFile is NOT an async iterable, so 'async for' raises).
+    total     = 0
+    limit     = MAX_UPLOAD_MB * 1024 * 1024
+    chunk_sz  = 64 * 1024
     tmp_fd, tmp_name = tempfile.mkstemp(suffix=ext)
-    tmp_path = Path(tmp_name)
+    tmp_path  = Path(tmp_name)
     try:
         with os.fdopen(tmp_fd, "wb") as tmp_fp:
-            async for chunk in file:
+            while True:
+                chunk = await file.read(chunk_sz)
+                if not chunk:
+                    break
                 if isinstance(chunk, str):
                     chunk = chunk.encode()
                 total += len(chunk)
@@ -260,9 +265,12 @@ async def upload_book(request: Request, file: UploadFile = File(...)):
         log.error("Parse failed for %s: %s", file.filename, exc)
         raise HTTPException(status_code=422, detail=str(exc))
 
+    # Use 'pending' (not 'queued') until the user selects chapters and POSTs
+    # to /synthesize. Workers only claim jobs with status='queued', so a
+    # pending job sits safely in the DB until the user is ready.
     job = Job(
         id=job_id,
-        status="queued",
+        status="pending",
         voice=DEFAULT_VOICE,
         chapters_json=serialize_chapters(chapters),
         book_key=book_key,
@@ -297,7 +305,7 @@ async def start_synthesis(job_id: str, req: SynthesizeRequest, request: Request)
     ip  = _client_ip(request)
     job = await _get_job(job_id)
 
-    if job.status not in ("queued", "error", "done"):
+    if job.status not in ("pending", "queued", "error", "done"):
         raise HTTPException(status_code=409, detail=f"Job is already '{job.status}'.")
 
     if not req.chapters:

@@ -27,7 +27,11 @@ PRAGMA foreign_keys=ON;
 
 CREATE TABLE IF NOT EXISTS jobs (
     id            TEXT PRIMARY KEY,
-    status        TEXT NOT NULL DEFAULT 'queued',
+    status        TEXT NOT NULL DEFAULT 'pending',
+    -- pending: uploaded, awaiting chapter selection
+    -- queued:  ready for a worker to claim
+    -- analyzing|synthesizing|assembling: in-flight
+    -- done|error: terminal
     progress      REAL NOT NULL DEFAULT 0.0,
     message       TEXT NOT NULL DEFAULT '',
     voice         TEXT NOT NULL DEFAULT '',
@@ -52,7 +56,7 @@ CREATE INDEX IF NOT EXISTS idx_jobs_created_at ON jobs(created_at);
 @dataclass
 class Job:
     id:            str
-    status:        str   = "queued"   # queued|analyzing|synthesizing|assembling|done|error
+    status:        str   = "pending"  # pending|queued|analyzing|synthesizing|assembling|done|error
     progress:      float = 0.0
     message:       str   = ""
     voice:         str   = ""
