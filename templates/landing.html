@@ -227,7 +227,7 @@
       <h2>Eight voices.<br/>Five English accents.</h2>
     </div>
     <div class="voices-inner">
-      <div class="voice-list reveal" id="voice-list">
+      <div class="voice-list" id="voice-list" style="opacity:0;transition:opacity .5s ease">
         <!-- filled by JS -->
       </div>
       <div class="voice-stage reveal" id="voice-stage">
@@ -787,6 +787,8 @@
 
     selectVoice(selVoice, false);
     paintVsWave(false);
+    // Fade in after content is ready (avoids reveal-on-empty-div timing race)
+    requestAnimationFrame(() => { if (list) list.style.opacity = "1"; });
   }
 
   // Fetch voices from API; fall back to a hardcoded list if request fails
