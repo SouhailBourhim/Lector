@@ -163,11 +163,23 @@ class JobRepo:
         )
         await self._db.commit()
 
+    # Explicit whitelist prevents accidental or malicious column injection even
+    # though callers are internal; Sourcery's SQL-injection rule fires on any
+    # f-string in an execute() call, so we validate column names up front.
+    _UPDATABLE: frozenset[str] = frozenset({
+        "status", "progress", "message", "voice",
+        "chapters_json", "selected_json", "audio_keys", "preview_keys",
+        "error", "client_ip", "book_key", "updated_at",
+    })
+
     async def update(self, job_id: str, **fields: Any) -> None:
         if not fields:
             return
         fields["updated_at"] = time.time()
-        setters = ", ".join(f"{k}=?" for k in fields)
+        unknown = set(fields) - self._UPDATABLE
+        if unknown:
+            raise ValueError(f"Unknown job fields: {unknown}")
+        setters = ", ".join(f"{col}=?" for col in fields)   # col is whitelist-validated
         values  = list(fields.values()) + [job_id]
         await self._db.execute(f"UPDATE jobs SET {setters} WHERE id=?", values)
         await self._db.commit()
@@ -208,9 +220,15 @@ class JobRepo:
         return row[0] if row else 0
 
     async def list_stale(self, older_than_secs: float) -> list[Job]:
+        """Return only terminal jobs (done/error) older than the given age.
+
+        Restricting to terminal states prevents accidental deletion of
+        long-running in-flight jobs whose wall-clock time exceeds the TTL.
+        """
         cutoff = time.time() - older_than_secs
         async with self._db.execute(
-            "SELECT * FROM jobs WHERE created_at < ?", (cutoff,)
+            "SELECT * FROM jobs WHERE created_at < ? AND status IN ('done','error')",
+            (cutoff,),
         ) as cur:
             rows = await cur.fetchall()
         return [_row_to_job(r) for r in rows]
@@ -233,20 +251,26 @@ class JobRepo:
 
     # ── internal ──────────────────────────────────────────────────────────────
 
+    _IN_FLIGHT_STATES = "('analyzing','synthesizing','assembling')"  # compile-time constant
+
     async def _requeue_interrupted(self) -> None:
-        """On startup, move in-flight jobs back to 'queued' so workers pick them up."""
-        in_flight = ("analyzing", "synthesizing", "assembling")
-        placeholders = ",".join("?" * len(in_flight))
+        """On startup, move in-flight jobs back to 'queued' so workers pick them up.
+
+        The IN list is a hardcoded string literal, not built from user input,
+        so there is no SQL-injection risk; aiosqlite's parameter binding is
+        used for the only runtime value (the timestamp).
+        """
         now = time.time()
         async with self._db.execute(
-            f"SELECT COUNT(*) FROM jobs WHERE status IN ({placeholders})", in_flight
+            f"SELECT COUNT(*) FROM jobs WHERE status IN {self._IN_FLIGHT_STATES}"
         ) as cur:
             row = await cur.fetchone()
         count = row[0] if row else 0
         if count:
             await self._db.execute(
-                f"UPDATE jobs SET status='queued', updated_at=? WHERE status IN ({placeholders})",
-                (now, *in_flight),
+                f"UPDATE jobs SET status='queued', updated_at=?"
+                f" WHERE status IN {self._IN_FLIGHT_STATES}",
+                (now,),
             )
             await self._db.commit()
             log.info("Re-queued %d interrupted job(s) from previous run", count)

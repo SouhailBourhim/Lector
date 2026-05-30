@@ -15,6 +15,7 @@ import json
 import logging
 import os
 import sys
+import tempfile
 import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -228,19 +229,26 @@ async def upload_book(request: Request, file: UploadFile = File(...)):
     job_id   = Job.new_id()
     book_key = f"books/{job_id}{ext}"
 
-    # Stream file to storage
+    # Stream to a temporary file so we never hold the whole upload in memory.
     total = 0
     limit = MAX_UPLOAD_MB * 1024 * 1024
-    buf   = b""
-    async for chunk in file:
-        if isinstance(chunk, str):
-            chunk = chunk.encode()
-        total += len(chunk)
-        if total > limit:
-            raise HTTPException(status_code=413, detail=f"File exceeds {MAX_UPLOAD_MB} MB.")
-        buf += chunk
+    tmp_fd, tmp_name = tempfile.mkstemp(suffix=ext)
+    tmp_path = Path(tmp_name)
+    try:
+        with os.fdopen(tmp_fd, "wb") as tmp_fp:
+            async for chunk in file:
+                if isinstance(chunk, str):
+                    chunk = chunk.encode()
+                total += len(chunk)
+                if total > limit:
+                    raise HTTPException(
+                        status_code=413, detail=f"File exceeds {MAX_UPLOAD_MB} MB."
+                    )
+                tmp_fp.write(chunk)
+        await storage.put_from_path(book_key, tmp_path)
+    finally:
+        tmp_path.unlink(missing_ok=True)
 
-    await storage.put(book_key, buf)
     book_path = storage.local_path(book_key)
 
     # Parse chapters (CPU-bound)
@@ -417,10 +425,12 @@ async def _resolve_audio_path(job, chapter: int | None, prefer_preview: bool) ->
     audio_keys   = json.loads(job.audio_keys)
     preview_keys = json.loads(job.preview_keys)
 
-    # Determine which chapter to serve
+    # When no chapter is specified, pick the first chapter that has ANY audio
+    # (full or preview). This prevents a 404 when only a preview is available
+    # for the first chapter while synthesis is still running.
     if ch_num is None:
-        keys = sorted(audio_keys.keys(), key=int)
-        ch_num = keys[0] if keys else None
+        all_ready = sorted(set(audio_keys) | set(preview_keys), key=int)
+        ch_num    = all_ready[0] if all_ready else None
     if ch_num is None:
         raise HTTPException(status_code=404, detail="Audio not ready yet.")
 
