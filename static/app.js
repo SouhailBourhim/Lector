@@ -10,6 +10,145 @@ let currentBookName = '';
 let wavesurfers     = {};   // chapter_number → WaveSurfer instance
 let jobComplete     = false;
 
+// ── Mini player ─────────────────────────────────────────────────────────────
+// Stays alive across screen changes. When WaveSurfer is destroyed (e.g. on
+// "Convert another"), audio is handed off to a standalone <audio> element so
+// playback never interrupts unexpectedly.
+const mp = {
+  ws:     null,   // active WaveSurfer (null when using fallback audio)
+  audio:  null,   // standalone <audio> used after WS is destroyed
+  raf:    null,   // requestAnimationFrame id for scrub updates
+
+  // ── read-only state ───────────────────────────────────────────────────────
+  get isPlaying() {
+    if (this.ws)    return this.ws.isPlaying();
+    if (this.audio) return !this.audio.paused;
+    return false;
+  },
+  get currentTime() {
+    if (this.ws)    return this.ws.getCurrentTime();
+    if (this.audio) return this.audio.currentTime;
+    return 0;
+  },
+  get duration() {
+    if (this.ws)    return this.ws.getDuration() || 0;
+    if (this.audio) return this.audio.duration || 0;
+    return 0;
+  },
+
+  // ── activate from a WaveSurfer instance ───────────────────────────────────
+  activate(ws, title, book) {
+    // Stop any existing standalone audio
+    if (this.audio) { this.audio.pause(); this.audio = null; }
+    this.ws = ws;
+    this._updateMeta(title, book);
+    this._show();
+    this._syncPlayBtn(ws.isPlaying());
+    this._startRaf();
+
+    ws.on('play',   () => { this._syncPlayBtn(true);  this._startRaf(); });
+    ws.on('pause',  () => this._syncPlayBtn(false));
+    ws.on('finish', () => { this._syncPlayBtn(false); this._setFill(0); });
+  },
+
+  // ── hand off to standalone <audio> before WS is destroyed ─────────────────
+  // Call this in convertAnother()/backToUpload() BEFORE destroyAllWavesurfers().
+  ejectWaveSurfer() {
+    if (!this.ws) return;
+    const wasPlaying = this.ws.isPlaying();
+    const curTime    = this.ws.getCurrentTime();
+    let   src;
+    try { src = this.ws.getMediaElement().src; } catch (_) { src = null; }
+
+    this.ws = null;
+    cancelAnimationFrame(this.raf);
+
+    if (!src) { this._hide(); return; }   // can't recover without src
+
+    this.audio = new Audio(src);
+    this.audio.currentTime = curTime;
+    if (wasPlaying) this.audio.play().catch(() => {});
+    this._syncPlayBtn(wasPlaying);
+
+    this.audio.addEventListener('play',       () => { this._syncPlayBtn(true);  this._startRaf(); });
+    this.audio.addEventListener('pause',      () => this._syncPlayBtn(false));
+    this.audio.addEventListener('ended',      () => { this._syncPlayBtn(false); this._setFill(0); });
+    this.audio.addEventListener('timeupdate', () => this._tick());
+    this._startRaf();
+  },
+
+  // ── controls ──────────────────────────────────────────────────────────────
+  playPause() {
+    if (this.ws) { this.ws.playPause(); return; }
+    if (this.audio) this.audio.paused ? this.audio.play() : this.audio.pause();
+  },
+
+  seekTo(fraction) {
+    const f = Math.max(0, Math.min(1, fraction));
+    if (this.ws) { this.ws.seekTo(f); return; }
+    if (this.audio && isFinite(this.audio.duration)) {
+      this.audio.currentTime = f * this.audio.duration;
+    }
+  },
+
+  // ── internal ──────────────────────────────────────────────────────────────
+  _show() {
+    document.getElementById('mini-player').classList.remove('mini-player--hidden');
+  },
+  _hide() {
+    document.getElementById('mini-player').classList.add('mini-player--hidden');
+    this.ws = null; this.audio = null;
+    cancelAnimationFrame(this.raf);
+  },
+  _updateMeta(title, book) {
+    document.getElementById('mp-title').textContent = title || '—';
+    document.getElementById('mp-book').textContent  = book  || '';
+  },
+  _syncPlayBtn(playing) {
+    document.getElementById('mp-play').classList.toggle('playing', playing);
+  },
+  _setFill(pct) {
+    document.getElementById('mp-fill').style.width = pct + '%';
+  },
+  _tick() {
+    const dur = this.duration;
+    const cur = this.currentTime;
+    this._setFill(dur > 0 ? (cur / dur * 100) : 0);
+    document.getElementById('mp-time').textContent = fmtTime(cur);
+    document.getElementById('mp-dur').textContent  = isFinite(dur) && dur > 0 ? fmtTime(dur) : '--:--';
+  },
+  _startRaf() {
+    cancelAnimationFrame(this.raf);
+    const tick = () => { this._tick(); if (this.isPlaying) this.raf = requestAnimationFrame(tick); };
+    this.raf = requestAnimationFrame(tick);
+  },
+};
+
+// Wire mini-player controls once DOM is ready (called from DOMContentLoaded)
+function initMiniPlayer() {
+  document.getElementById('mp-play').addEventListener('click', () => mp.playPause());
+  document.getElementById('mp-close').addEventListener('click', () => {
+    if (mp.ws)    mp.ws.pause();
+    if (mp.audio) mp.audio.pause();
+    mp._hide();
+  });
+
+  const bar = document.getElementById('mp-bar');
+  const seek = e => {
+    const r = bar.getBoundingClientRect();
+    mp.seekTo((e.clientX - r.left) / r.width);
+  };
+  bar.addEventListener('click', seek);
+
+  // Keyboard seek on scrub bar (left/right arrow ±5 s)
+  bar.addEventListener('keydown', e => {
+    const dur = mp.duration;
+    if (!dur) return;
+    if (e.key === 'ArrowLeft')  { e.preventDefault(); mp.seekTo(Math.max(0, mp.currentTime - 5) / dur); }
+    if (e.key === 'ArrowRight') { e.preventDefault(); mp.seekTo(Math.min(dur, mp.currentTime + 5) / dur); }
+  });
+}
+
 // ── Screen management ──────────────────────────────────────────────────────
 function showScreen(name) {
   document.querySelectorAll('.screen').forEach(s => {
@@ -187,6 +326,7 @@ function markChapterDone(chapterNum) {
 function backToUpload() {
   if (sseSource) { sseSource.close(); sseSource = null; }
   jobComplete = false;
+  mp.ejectWaveSurfer();   // hand off to standalone <audio> before WS is destroyed
   destroyAllWavesurfers();
   localStorage.removeItem('lector_job_id');
   localStorage.removeItem('lector_book_name');
@@ -543,6 +683,14 @@ function initWaveSurfer(containerId, chapterNum, audioSrc, playBtn, timeEl, durE
       if (timeEl && durEl) timeEl.textContent = '0:00';
     });
 
+    // Activate the persistent mini-player whenever this chapter starts playing
+    ws.on('play', () => {
+      // Find chapter title from the card header
+      const card  = document.querySelector(`.audio-card[data-chapter-num="${chapterNum}"]`);
+      const title = card ? (card.querySelector('.ch-title')?.textContent || `Chapter ${chapterNum}`) : `Chapter ${chapterNum}`;
+      mp.activate(ws, title, currentBookName);
+    });
+
   } catch (_) {
     // WaveSurfer failed — render native audio as fallback
     const audio = document.createElement('audio');
@@ -564,6 +712,7 @@ function destroyAllWavesurfers() {
 function convertAnother() {
   if (sseSource) { sseSource.close(); sseSource = null; }
   jobComplete = false;
+  mp.ejectWaveSurfer();   // hand off to standalone <audio> before WS is destroyed
   destroyAllWavesurfers();
   currentJobId    = null;
   currentChapters = [];
@@ -649,6 +798,7 @@ async function restoreSession(jobId) {
 
 // ── Drag & drop + file input ─────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
+  initMiniPlayer();
   const dropZone  = document.getElementById('drop-zone');
   const fileInput = document.getElementById('file-input');
 
