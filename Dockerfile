@@ -5,6 +5,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg curl && \
     rm -rf /var/lib/apt/lists/*
 
+# Create a non-root user for production safety
+RUN useradd --create-home --shell /bin/bash lector
+
 WORKDIR /app
 
 COPY requirements.txt .
@@ -14,7 +17,12 @@ RUN pip install --no-cache-dir --prefer-binary -r requirements.txt && \
 
 COPY . .
 
-RUN mkdir -p /tmp/lector_cache
+# Cache dir for synthesized demo audio and chapter MP3s.
+# Override with CACHE_DIR env var (Railway/Render mount a persistent volume here).
+ENV CACHE_DIR=/tmp/lector_cache
+RUN mkdir -p /tmp/lector_cache && chown -R lector:lector /tmp/lector_cache /app
+
+USER lector
 
 EXPOSE 8000
 

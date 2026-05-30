@@ -8,3 +8,8 @@ restartPolicyType  = "on_failure"
 
 [[volumes]]
 mountPath = "/tmp/lector_cache"
+
+[deploy.envVars]
+CACHE_DIR         = "/tmp/lector_cache"
+TTS_CONCURRENCY   = "10"
+MAX_UPLOAD_MB     = "50"
