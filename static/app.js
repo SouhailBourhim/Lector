@@ -238,13 +238,36 @@ function listenProgress() {
     try { d = JSON.parse(event.data); }
     catch (_) { return; }
 
+    if (d.status === 'preview_ready') {
+      // Show a preview audio card so the user can start listening immediately.
+      // When the full chapter arrives via chapter_ready, the card's source
+      // is swapped in place (WaveSurfer reloads the new URL).
+      appendAudioCard(d.chapter, /* isPreview */ true);
+      markChapterDone(d.chapter.number);
+      setProgress(d.progress || 0, 'synthesizing', `Preview ready — ${d.chapter.title}`);
+      addActivity(`Preview ready — ${d.chapter.title}`);
+      showResultView();
+      return;
+    }
+
     if (d.status === 'chapter_ready') {
-      // Append audio card immediately; keep progress view visible
-      appendAudioCard(d.chapter);
+      // Full chapter done — append new card or upgrade existing preview card.
+      const existing = document.querySelector(`.audio-card[data-chapter-num="${d.chapter.number}"]`);
+      if (existing) {
+        // Swap the WaveSurfer source to the full chapter
+        const ws = wavesurfers[d.chapter.number];
+        if (ws) {
+          ws.load(`/audio/${currentJobId}?chapter=${d.chapter.number}`);
+        }
+        const badge = existing.querySelector('.ch-preview-badge');
+        if (badge) badge.remove();
+      } else {
+        appendAudioCard(d.chapter, /* isPreview */ false);
+      }
       markChapterDone(d.chapter.number);
       setProgress(d.progress || 0, 'synthesizing', d.message || '');
       addActivity(d.message || `Chapter ${d.chapter.number} ready`);
-      showResultView();  // show result area alongside progress
+      showResultView();
       return;
     }
 
@@ -352,13 +375,13 @@ function showResultView(totalChapters) {
   }
 }
 
-function appendAudioCard(ch) {
+function appendAudioCard(ch, isPreview = false) {
   const list = document.getElementById('audio-list');
 
-  // Don't double-render
+  // Don't double-render (preview_ready and chapter_ready both call this)
   if (document.querySelector(`.audio-card[data-chapter-num="${ch.number}"]`)) return;
 
-  const chParam = ch.number != null ? `?chapter=${ch.number}` : '';
+  const chParam      = ch.number != null ? `?chapter=${ch.number}` : '';
   const audioSrc     = `/audio/${currentJobId}${chParam}`;
   const downloadHref = `/download/${currentJobId}${chParam}`;
 
@@ -381,6 +404,14 @@ function appendAudioCard(ch) {
   chTitle.className   = 'ch-title';
   chTitle.textContent = ch.title;
   header.appendChild(chTitle);
+
+  if (isPreview) {
+    const previewBadge = document.createElement('span');
+    previewBadge.className   = 'ch-preview-badge';
+    previewBadge.textContent = 'PREVIEW';
+    previewBadge.title       = 'Full chapter is still synthesizing…';
+    header.appendChild(previewBadge);
+  }
 
   // Play / pause button (right-aligned in header)
   const playBtn = document.createElement('button');
