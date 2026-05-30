@@ -1,11 +1,12 @@
 from __future__ import annotations
+
 import io
 from pathlib import Path
 
 from pydub import AudioSegment
 
 from analyzer.models import TextSegment
-from config import AUDIO_FRAME_RATE, AUDIO_CHANNELS, AUDIO_BITRATE
+from config import AUDIO_BITRATE, AUDIO_CHANNELS, AUDIO_FRAME_RATE
 
 
 def _load_clip(mp3_bytes: bytes) -> AudioSegment:

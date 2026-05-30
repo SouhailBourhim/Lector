@@ -1,19 +1,20 @@
 from __future__ import annotations
+
 import re
 import unicodedata
 from statistics import mean
 
 import spacy
 
-from parsers.base import BookChapter, FormattedSpan
 from analyzer.models import ProsodicHints, TextSegment
 from config import (
+    ABBREVIATIONS,
+    PARAGRAPH_PAUSE_MS,
     PROSODY,
     PUNCTUATION_PAUSE,
-    PARAGRAPH_PAUSE_MS,
     SPEECH_VERBS,
-    ABBREVIATIONS,
 )
+from parsers.base import BookChapter, FormattedSpan
 
 # Normalize curly quotes to straight ASCII before regex matching
 _QUOTE_MAP = str.maketrans({"“": '"', "”": '"', "‘": "'", "’": "'"})

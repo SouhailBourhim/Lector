@@ -39,8 +39,8 @@ class WorkerPool:
     def __init__(
         self,
         n_workers: int,
-        repo: "JobRepo",
-        storage: "LocalStorage",
+        repo: JobRepo,
+        storage: LocalStorage,
         cpu_executor: ThreadPoolExecutor,
     ) -> None:
         self._n          = n_workers
@@ -112,7 +112,7 @@ class WorkerPool:
 
     # ── job execution ─────────────────────────────────────────────────────────
 
-    async def _run_job(self, job: "Job") -> None:  # noqa: C901 — long but linear
+    async def _run_job(self, job: Job) -> None:  # noqa: C901 — long but linear
         from analyzer.text_analyzer import TextAnalyzer
         from assembler.audio import assemble_chapter, export_chapter
         from storage.db import deserialize_chapters

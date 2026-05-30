@@ -1,11 +1,13 @@
 from __future__ import annotations
+
 import statistics
 from pathlib import Path
 
 import fitz  # PyMuPDF
 
-from .base import BookChapter, BookParser, FormattedSpan, ScannedPDFError
 from config import HEADING_FONT_RATIO
+
+from .base import BookChapter, BookParser, FormattedSpan, ScannedPDFError
 
 
 class PDFParser(BookParser):

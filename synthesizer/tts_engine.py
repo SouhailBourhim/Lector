@@ -1,10 +1,11 @@
 from __future__ import annotations
+
 import asyncio
 
 import edge_tts
 
 from analyzer.models import TextSegment
-from config import TTS_MAX_CONCURRENCY, TTS_RETRY_ATTEMPTS, DEFAULT_VOICE
+from config import DEFAULT_VOICE, TTS_MAX_CONCURRENCY, TTS_RETRY_ATTEMPTS
 
 
 async def _synthesize_one(segment: TextSegment, voice: str) -> bytes:

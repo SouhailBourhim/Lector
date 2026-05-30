@@ -1,0 +1,17 @@
+target-version = "py312"
+line-length = 120
+
+[lint]
+select = [
+  "E",   # pycodestyle errors
+  "F",   # pyflakes (undefined names, unused imports)
+  "I",   # isort (import order)
+  "UP",  # pyupgrade (modernise syntax for Python 3.12)
+]
+ignore = [
+  "E501",  # line too long — long SQL strings and URLs are intentional
+  "F401",  # unused import — TYPE_CHECKING guards trigger this
+]
+
+[lint.per-file-ignores]
+"main.py" = ["F401"]   # CLI entry imports for side effects

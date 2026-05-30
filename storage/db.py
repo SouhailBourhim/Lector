@@ -117,7 +117,7 @@ def serialize_chapters(chapters: list) -> str:
 
 def deserialize_chapters(data: str) -> list:
     """Convert JSON string → list[BookChapter]."""
-    from parsers.base import FormattedSpan, BookChapter
+    from parsers.base import BookChapter, FormattedSpan
     chapters = []
     for ch in json.loads(data):
         spans = [FormattedSpan(**s) for s in ch["spans"]]
