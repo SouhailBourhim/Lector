@@ -18,6 +18,12 @@ import sys
 import tempfile
 import time
 from concurrent.futures import ThreadPoolExecutor
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from storage.backend import LocalStorage
+    from storage.db import JobRepo
+    from workers.pool import WorkerPool
 from pathlib import Path
 
 import aiofiles
@@ -65,9 +71,9 @@ app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
 # ─── Global singletons (set at startup) ──────────────────────────────────────
-repo:    "JobRepo | None"    = None   # type: ignore[assignment]
-storage: "LocalStorage | None" = None  # type: ignore[assignment]
-pool:    "WorkerPool | None" = None   # type: ignore[assignment]
+repo:    JobRepo | None      = None
+storage: LocalStorage | None = None
+pool:    WorkerPool | None   = None
 
 # ─── Demo audio quotes ────────────────────────────────────────────────────────
 DEMO_QUOTES: dict[str, str] = {

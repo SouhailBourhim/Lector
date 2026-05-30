@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 from __future__ import annotations
+
 import subprocess
 import sys
 from pathlib import Path
 
 import click
-from rich.console import Console
-from rich.table import Table
-from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn, TimeElapsedColumn
 from rich import print as rprint
+from rich.console import Console
+from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
+from rich.table import Table
 
 console = Console()
 
@@ -28,8 +29,8 @@ def _check_ffmpeg() -> None:
 
 
 def _get_parser(filepath: Path):
-    from parsers.pdf_parser import PDFParser
     from parsers.epub_parser import EPUBParser
+    from parsers.pdf_parser import PDFParser
 
     ext = filepath.suffix.lower()
     if ext == ".pdf":
@@ -52,8 +53,8 @@ def _print_chapters(chapters) -> None:
 
 def _convert_chapter(chapter, voice: str, output_path: Path) -> None:
     from analyzer.text_analyzer import TextAnalyzer
-    from synthesizer.tts_engine import TTSEngine
     from assembler.audio import assemble_chapter, export_chapter
+    from synthesizer.tts_engine import TTSEngine
 
     analyzer = TextAnalyzer()
     engine = TTSEngine(voice=voice)
@@ -88,9 +89,9 @@ def _convert_chapter(chapter, voice: str, output_path: Path) -> None:
 
 def _play_chapter(chapter, voice: str) -> None:
     from analyzer.text_analyzer import TextAnalyzer
-    from synthesizer.tts_engine import TTSEngine
     from assembler.audio import assemble_chapter
     from player.player import Player
+    from synthesizer.tts_engine import TTSEngine
 
     analyzer = TextAnalyzer()
     engine = TTSEngine(voice=voice)

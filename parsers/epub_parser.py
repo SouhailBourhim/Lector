@@ -1,13 +1,15 @@
 from __future__ import annotations
+
 from pathlib import Path
 
 import chardet
 import ebooklib
-from ebooklib import epub
 from bs4 import BeautifulSoup, NavigableString, Tag
+from ebooklib import epub
+
+from config import SKIP_EPUB_KEYWORDS
 
 from .base import BookChapter, BookParser, FormattedSpan
-from config import SKIP_EPUB_KEYWORDS
 
 
 class EPUBParser(BookParser):
