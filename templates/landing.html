@@ -508,8 +508,11 @@
     heroPlayBtn.addEventListener("click", () => {
       if (!heroAudio) return;
       if (heroAudio.paused) {
-        heroAudio.play();
-        heroPlayBtn.classList.add("playing");
+        heroAudio.play().then(() => {
+          heroPlayBtn.classList.add("playing");
+        }).catch(() => {
+          heroPlayBtn.classList.remove("playing");
+        });
       } else {
         heroAudio.pause();
         heroPlayBtn.classList.remove("playing");
@@ -705,7 +708,7 @@
 
   function stopVoiceAudio() {
     voiceAudio.pause();
-    voiceAudio.src = “”;
+    voiceAudio.currentTime = 0;
     if (playingVoiceBtn) {
       playingVoiceBtn.classList.remove(“playing”, “loading”);
       playingVoiceBtn = null;
@@ -738,7 +741,6 @@
         playingVoiceBtn = btn;
       }
       voiceAudio.src = “/demo/voice/” + v.name;
-      voiceAudio.load();
       voiceAudio.play().then(() => {
         if (btn) { btn.classList.remove(“loading”); btn.classList.add(“playing”); }
         paintVsWave(true);
