@@ -20,6 +20,7 @@ from pathlib import Path
 
 import aiofiles
 import aiofiles.os
+import edge_tts
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
@@ -418,6 +419,84 @@ async def get_voices():
         gender  = "Female" if any(n in v for n in _FEMALE_NAMES) else "Male"
         result.append({"name": v, "locale": locale, "gender": gender, "display": display})
     return result
+
+
+# ─── Demo audio endpoints ─────────────────────────────────────────────────────
+
+# Public-domain literary quotes, one per voice (used for voice sample playback)
+DEMO_QUOTES: dict[str, str] = {
+    "en-US-AriaNeural":    "Call me Ishmael. Some years ago, never mind how long precisely, having little money in my pocket and nothing particular to interest me on shore, I thought I would sail about a little.",
+    "en-US-GuyNeural":     "It was a bright cold day in April, and the clocks were striking thirteen. Winston Smith, his chin nuzzled into his breast in an effort to escape the vile wind, slipped quickly through the glass doors.",
+    "en-GB-SoniaNeural":   "It was the best of times, it was the worst of times, it was the age of wisdom, it was the age of foolishness, it was the epoch of belief, it was the epoch of incredulity.",
+    "en-GB-RyanNeural":    "It is a truth universally acknowledged, that a single man in possession of a good fortune, must be in want of a wife. However little known the feelings or views of such a man may be on his first entering a neighbourhood.",
+    "en-AU-NatashaNeural": "The sky above the port was the colour of television, tuned to a dead channel. All this happened, more or less.",
+    "en-AU-WilliamNeural": "All happy families are alike; each unhappy family is unhappy in its own way. Everything was in confusion in the Oblonskys' house.",
+    "en-CA-ClaraNeural":   "In a hole in the ground there lived a hobbit. Not a nasty, dirty, wet hole, filled with the ends of worms and an oozy smell, nor yet a dry, bare, sandy hole with nothing in it to sit down on or to eat.",
+    "en-IN-NeerjaNeural":  "The past is a foreign country; they do things differently there. When I came upon the diary it was in the spring cleaning, and I thought no more of it than that it was old.",
+}
+
+# Hero demo: Bertrand Russell, "The Study of Mathematics" (1902) — public domain
+_HERO_DEMO_TEXT = (
+    "Mathematics, rightly viewed, possesses not only truth, but supreme beauty — "
+    "a beauty cold and austere, like that of sculpture. "
+    "The true spirit of delight, the exaltation, the sense of being more than human, "
+    "which is the touchstone of the highest excellence, "
+    "is to be found in mathematics as surely as in poetry. "
+    "What is best in mathematics deserves not merely to be learned as a task, "
+    "but to be assimilated as a part of daily thought, "
+    "and brought again and again before the mind with ever-renewed encouragement."
+)
+
+
+async def _synthesize_demo(text: str, voice: str, rate: str = "+0%") -> bytes:
+    """Synthesize a short demo clip directly via edge-tts and return MP3 bytes."""
+    communicate = edge_tts.Communicate(text=text, voice=voice, rate=rate, pitch="+0Hz")
+    data = b""
+    async for chunk in communicate.stream():
+        if chunk["type"] == "audio":
+            data += chunk["data"]
+    return data
+
+
+@app.get("/demo/hero")
+async def demo_hero():
+    """Serve (or generate & cache) the hero section audio demo."""
+    cache_path = CACHE_DIR / "demo_hero.mp3"
+    if not cache_path.exists():
+        log.info("Generating hero demo audio…")
+        try:
+            data = await _synthesize_demo(_HERO_DEMO_TEXT, "en-GB-SoniaNeural", rate="-5%")
+            cache_path.write_bytes(data)
+        except Exception as exc:
+            log.error("Hero demo synthesis failed: %s", exc)
+            raise HTTPException(status_code=503, detail="Demo audio temporarily unavailable.")
+    return FileResponse(
+        str(cache_path),
+        media_type="audio/mpeg",
+        headers={"Cache-Control": "public, max-age=86400"},
+    )
+
+
+@app.get("/demo/voice/{voice_id}")
+async def demo_voice(voice_id: str):
+    """Serve (or generate & cache) a short voice sample for the voices section."""
+    if voice_id not in VOICES:
+        raise HTTPException(status_code=404, detail=f"Voice '{voice_id}' not available.")
+    cache_path = CACHE_DIR / f"demo_voice_{voice_id}.mp3"
+    if not cache_path.exists():
+        log.info("Generating voice demo for %s…", voice_id)
+        text = DEMO_QUOTES.get(voice_id, "Hello, I am reading your book with natural prosody and pacing.")
+        try:
+            data = await _synthesize_demo(text, voice_id)
+            cache_path.write_bytes(data)
+        except Exception as exc:
+            log.error("Voice demo synthesis failed for %s: %s", voice_id, exc)
+            raise HTTPException(status_code=503, detail="Demo audio temporarily unavailable.")
+    return FileResponse(
+        str(cache_path),
+        media_type="audio/mpeg",
+        headers={"Cache-Control": "public, max-age=86400"},
+    )
 
 
 # ─── Background synthesis task ────────────────────────────────────────────────
