@@ -17,10 +17,10 @@ RUN pip install --no-cache-dir --prefer-binary -r requirements.txt && \
 
 COPY . .
 
-# Cache dir for synthesized demo audio and chapter MP3s.
-# Override with CACHE_DIR env var (Railway/Render mount a persistent volume here).
-ENV CACHE_DIR=/tmp/lector_cache
-RUN mkdir -p /tmp/lector_cache && chown -R lector:lector /tmp/lector_cache /app
+# Data dir: SQLite DB + all audio files. Mount a persistent volume here.
+# Override with DATA_DIR env var (Railway/Render set this via deploy config).
+ENV DATA_DIR=/data
+RUN mkdir -p /data && chown -R lector:lector /data /app
 
 USER lector
 

@@ -526,6 +526,21 @@ audio::-webkit-media-controls-panel { background: var(--surface-2); }
 
 .audio-card-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
+/* Preview badge — shown while full chapter is still synthesizing */
+.ch-preview-badge {
+  font-family: var(--mono); font-size: 9.5px; font-weight: 600;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--accent-2); background: var(--accent-tint);
+  border: 1px solid var(--accent);
+  padding: 2px 7px; border-radius: 999px;
+  flex-shrink: 0; white-space: nowrap;
+  animation: pulse-badge 2s ease infinite;
+}
+@keyframes pulse-badge {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.55; }
+}
+
 /* ── Buttons ────────────────────────────────────────── */
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;

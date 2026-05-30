@@ -7,9 +7,11 @@ healthcheckTimeout = 30
 restartPolicyType  = "on_failure"
 
 [[volumes]]
-mountPath = "/tmp/lector_cache"
+mountPath = "/data"
 
 [deploy.envVars]
-CACHE_DIR         = "/tmp/lector_cache"
-TTS_CONCURRENCY   = "10"
-MAX_UPLOAD_MB     = "50"
+DATA_DIR        = "/data"
+N_WORKERS       = "4"
+TTS_CONCURRENCY = "10"
+MAX_UPLOAD_MB   = "50"
+MAX_GLOBAL_JOBS = "10"
