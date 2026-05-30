@@ -130,6 +130,39 @@ def chapters_summary(chapters_json: str) -> list[dict]:
     return [{"number": c["number"], "title": c["title"]} for c in json.loads(chapters_json)]
 
 
+# ── Pre-built SQL constants (no runtime string construction) ──────────────────
+# These are module-level string literals so that JobRepo.update() can pass a
+# plain dict-lookup value to execute() rather than a dynamically constructed
+# string.  Static-analysis tools see execute(_FIELD_SQL[col], ...) and treat
+# the argument as a whitelisted literal, not tainted concatenation.
+
+_FIELD_SQL: dict[str, str] = {
+    "status":        "UPDATE jobs SET status=?        WHERE id=?",
+    "progress":      "UPDATE jobs SET progress=?      WHERE id=?",
+    "message":       "UPDATE jobs SET message=?       WHERE id=?",
+    "voice":         "UPDATE jobs SET voice=?         WHERE id=?",
+    "chapters_json": "UPDATE jobs SET chapters_json=? WHERE id=?",
+    "selected_json": "UPDATE jobs SET selected_json=? WHERE id=?",
+    "audio_keys":    "UPDATE jobs SET audio_keys=?    WHERE id=?",
+    "preview_keys":  "UPDATE jobs SET preview_keys=?  WHERE id=?",
+    "error":         "UPDATE jobs SET error=?         WHERE id=?",
+    "client_ip":     "UPDATE jobs SET client_ip=?     WHERE id=?",
+    "book_key":      "UPDATE jobs SET book_key=?      WHERE id=?",
+    "updated_at":    "UPDATE jobs SET updated_at=?    WHERE id=?",
+}
+
+# Literal SQL for startup re-queue — no parameters in the WHERE clause so
+# there is nothing to inject; timestamp is the only bound parameter.
+_REQUEUE_COUNT_SQL = (
+    "SELECT COUNT(*) FROM jobs"
+    " WHERE status IN ('analyzing','synthesizing','assembling')"
+)
+_REQUEUE_UPDATE_SQL = (
+    "UPDATE jobs SET status='queued', updated_at=?"
+    " WHERE status IN ('analyzing','synthesizing','assembling')"
+)
+
+
 # ── JobRepo ───────────────────────────────────────────────────────────────────
 
 class JobRepo:
@@ -167,27 +200,29 @@ class JobRepo:
         )
         await self._db.commit()
 
-    # Explicit whitelist prevents accidental or malicious column injection even
-    # though callers are internal; Sourcery's SQL-injection rule fires on any
-    # f-string in an execute() call, so we validate column names up front.
-    _UPDATABLE: frozenset[str] = frozenset({
-        "status", "progress", "message", "voice",
-        "chapters_json", "selected_json", "audio_keys", "preview_keys",
-        "error", "client_ip", "book_key", "updated_at",
-    })
-
     async def update(self, job_id: str, **fields: Any) -> None:
+        """Update arbitrary job fields.
+
+        Each field maps to a pre-built literal SQL statement in _FIELD_SQL so
+        that no string is constructed at call-time and execute() always receives
+        a fully static string (satisfying strict SQL-injection static analysis).
+        Multiple fields are applied inside a single explicit transaction.
+        """
         if not fields:
             return
         fields["updated_at"] = time.time()
-        unknown = set(fields) - self._UPDATABLE
+        unknown = set(fields) - _FIELD_SQL.keys()
         if unknown:
             raise ValueError(f"Unknown job fields: {unknown}")
-        setters = ", ".join(col + "=?" for col in fields)   # col is whitelist-validated above
-        sql     = "UPDATE jobs SET " + setters + " WHERE id=?"
-        values  = list(fields.values()) + [job_id]
-        await self._db.execute(sql, values)
-        await self._db.commit()
+        async with self._db.execute("BEGIN"):
+            pass
+        try:
+            for col, val in fields.items():
+                await self._db.execute(_FIELD_SQL[col], (val, job_id))
+            await self._db.commit()
+        except Exception:
+            await self._db.execute("ROLLBACK")
+            raise
 
     async def delete(self, job_id: str) -> None:
         await self._db.execute("DELETE FROM jobs WHERE id=?", (job_id,))
@@ -256,24 +291,14 @@ class JobRepo:
 
     # ── internal ──────────────────────────────────────────────────────────────
 
-    _IN_FLIGHT_STATES = "('analyzing','synthesizing','assembling')"  # compile-time constant
-
     async def _requeue_interrupted(self) -> None:
-        """On startup, move in-flight jobs back to 'queued' so workers pick them up.
-
-        The IN list is a hardcoded string literal, not built from user input,
-        so there is no SQL-injection risk; aiosqlite's parameter binding is
-        used for the only runtime value (the timestamp).
-        """
-        now      = time.time()
-        sql_sel  = "SELECT COUNT(*) FROM jobs WHERE status IN " + self._IN_FLIGHT_STATES
-        sql_upd  = ("UPDATE jobs SET status='queued', updated_at=?"
-                    " WHERE status IN " + self._IN_FLIGHT_STATES)
-        async with self._db.execute(sql_sel) as cur:
+        """On startup, move in-flight jobs back to 'queued' so workers pick them up."""
+        now = time.time()
+        async with self._db.execute(_REQUEUE_COUNT_SQL) as cur:
             row = await cur.fetchone()
         count = row[0] if row else 0
         if count:
-            await self._db.execute(sql_upd, (now,))
+            await self._db.execute(_REQUEUE_UPDATE_SQL, (now,))
             await self._db.commit()
             log.info("Re-queued %d interrupted job(s) from previous run", count)
 
