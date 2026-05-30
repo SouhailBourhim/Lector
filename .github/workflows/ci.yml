@@ -70,16 +70,27 @@ jobs:
           docker logs lector-smoke
           exit 1
 
-      - name: Smoke — /voices returns 8 voices
+      - name: Smoke — /voices returns valid voice list
         run: |
-          COUNT=$(curl -s http://localhost:8000/voices \
-            | python3 -c "import sys, json; print(len(json.load(sys.stdin)))")
-          if [ "$COUNT" = "8" ]; then
-            echo "✓ /voices → $COUNT voices"
-          else
-            echo "✗ Expected 8 voices, got $COUNT"
+          # Check that the API returns at least one voice and all required
+          # base voices are present, without hard-coding the total count so
+          # adding voices later doesn't break CI.
+          REQUIRED="en-US-AriaNeural en-GB-SoniaNeural en-AU-NatashaNeural"
+          BODY=$(curl -s http://localhost:8000/voices)
+          COUNT=$(echo "$BODY" | python3 -c "import sys, json; print(len(json.load(sys.stdin)))")
+          if [ "$COUNT" -lt 1 ]; then
+            echo "✗ /voices returned no voices"
             exit 1
           fi
+          for VOICE in $REQUIRED; do
+            if echo "$BODY" | grep -q "\"$VOICE\""; then
+              echo "✓ found $VOICE"
+            else
+              echo "✗ required voice $VOICE not found in response"
+              exit 1
+            fi
+          done
+          echo "✓ /voices → $COUNT voices, all required voices present"
 
       - name: Dump logs on failure
         if: failure()
