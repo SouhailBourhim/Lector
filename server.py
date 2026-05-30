@@ -39,6 +39,7 @@ PORT          = int(os.getenv("PORT", "8000"))
 MAX_UPLOAD_MB = int(os.getenv("MAX_UPLOAD_MB", "50"))
 CACHE_DIR     = Path(os.getenv("CACHE_DIR", "/tmp/lector_cache"))
 MAX_JOBS_PER_IP = 3
+STATIC_VER    = "3"   # bump when static assets (app.js / style.css) change
 
 # ─── Logging ──────────────────────────────────────────────────────────────────
 logging.basicConfig(
@@ -175,7 +176,8 @@ async def landing(request: Request):
 
 @app.get("/app")
 async def index(request: Request):
-    return templates.TemplateResponse(request=request, name="index.html")
+    return templates.TemplateResponse(request=request, name="index.html",
+                                      context={"static_ver": STATIC_VER})
 
 
 # ── Upload ─────────────────────────────────────────────────────────────────────
