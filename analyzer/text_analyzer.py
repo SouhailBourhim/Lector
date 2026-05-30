@@ -167,8 +167,9 @@ class TextAnalyzer:
             if skip_next:
                 skip_next = False
                 continue
-            raw = sent.text.rstrip()
-            last_word = raw.rstrip(".").split()[-1].lower() if raw.split() else ""
+            raw   = sent.text.rstrip()
+            parts = raw.rstrip(".").split()          # guard against "..."-only sentences
+            last_word = parts[-1].lower() if parts else ""
             if last_word in ABBREVIATIONS and i + 1 < len(sent_list):
                 # Merge with next sentence by creating a combined span
                 merged.append(_MergedSent(sent, sent_list[i + 1]))
