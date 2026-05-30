@@ -48,8 +48,13 @@ jobs:
           cache-to: type=gha,mode=max
 
   # ── 2. Deploy to Railway ──────────────────────────────────────────────────────
-  # Skips cleanly when RAILWAY_TOKEN secret is not set.
-  # To enable: Settings → Secrets → New secret → RAILWAY_TOKEN
+  # Gated on a repository *variable* (not a secret) because GitHub Actions
+  # does not allow secrets in job-level `if` expressions.
+  # To enable:
+  #   Settings → Variables → New variable → RAILWAY_ENABLED = true
+  #   Settings → Secrets  → New secret  → RAILWAY_TOKEN = <your token>
+  # The job is skipped when RAILWAY_ENABLED != 'true'; it fails if the
+  # variable is set but RAILWAY_TOKEN secret is missing.
   deploy-railway:
     name: Deploy → Railway
     runs-on: ubuntu-latest
@@ -67,9 +72,10 @@ jobs:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
 
   # ── 3. Deploy to Render ───────────────────────────────────────────────────────
-  # Skips cleanly when RENDER_DEPLOY_HOOK secret is not set.
-  # To enable: Settings → Secrets → New secret → RENDER_DEPLOY_HOOK
-  #   (value = the Deploy Hook URL from Render dashboard → Service → Settings)
+  # Same pattern: gated on RENDER_ENABLED variable; also requires
+  # RENDER_DEPLOY_HOOK secret (deploy hook URL from Render dashboard →
+  # Service → Settings). Job is skipped when variable is absent/false;
+  # fails if variable is set but secret is missing.
   deploy-render:
     name: Deploy → Render
     runs-on: ubuntu-latest
