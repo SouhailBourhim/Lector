@@ -10,8 +10,8 @@ select = [
 ]
 ignore = [
   "E501",  # line too long — long SQL strings and URLs are intentional
-  "F401",  # unused import — TYPE_CHECKING guards trigger this
 ]
 
 [lint.per-file-ignores]
-"main.py" = ["F401"]   # CLI entry imports for side effects
+# main.py re-exports CLI helpers and imports for side effects
+"main.py" = ["F401"]

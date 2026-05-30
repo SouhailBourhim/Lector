@@ -161,6 +161,36 @@
 
   </main>
 
+  <!-- Persistent mini-player — survives screen changes -->
+  <div id="mini-player" class="mini-player mini-player--hidden" role="region" aria-label="Now playing">
+    <div class="mp-info">
+      <div class="mp-cover" aria-hidden="true">L</div>
+      <div class="mp-meta">
+        <div class="mp-title" id="mp-title">—</div>
+        <div class="mp-book"  id="mp-book"></div>
+      </div>
+    </div>
+
+    <div class="mp-controls">
+      <button class="mp-btn mp-play-btn" id="mp-play" aria-label="Play / pause">
+        <svg class="ico-play"  viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+        <svg class="ico-pause" viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>
+      </button>
+    </div>
+
+    <div class="mp-progress">
+      <span class="mp-time" id="mp-time">0:00</span>
+      <div class="mp-bar" id="mp-bar" role="slider" aria-label="Seek" tabindex="0">
+        <div class="mp-fill" id="mp-fill"></div>
+      </div>
+      <span class="mp-time" id="mp-dur">--:--</span>
+    </div>
+
+    <button class="mp-close" id="mp-close" aria-label="Close player">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+
   <!-- Global error banner -->
   <div id="error-banner" class="error-banner hidden" role="alert" aria-live="assertive">
     <span id="error-text"></span>

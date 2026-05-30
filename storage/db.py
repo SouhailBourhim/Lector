@@ -95,7 +95,6 @@ class Job:
 
 def serialize_chapters(chapters: list) -> str:
     """Convert list[BookChapter] → JSON string for storage."""
-    from parsers.base import BookChapter
     result = []
     for ch in chapters:
         result.append({

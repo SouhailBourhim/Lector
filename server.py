@@ -16,17 +16,15 @@ import logging
 import os
 import sys
 import tempfile
-import time
 from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from storage.backend import LocalStorage
     from storage.db import JobRepo
     from workers.pool import WorkerPool
-from pathlib import Path
 
-import aiofiles
 import edge_tts
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -49,7 +47,7 @@ N_WORKERS       = int(os.getenv("N_WORKERS", "4"))
 MAX_JOBS_PER_IP = int(os.getenv("MAX_JOBS_PER_IP", "3"))
 MAX_GLOBAL_JOBS = int(os.getenv("MAX_GLOBAL_JOBS", "10"))
 API_KEY         = os.getenv("API_KEY", "")          # empty = auth disabled
-STATIC_VER      = "5"
+STATIC_VER      = "6"
 
 # CPU-bound executor (spaCy, pydub)
 _CPU_WORKERS  = max(4, (os.cpu_count() or 4) * 2)
