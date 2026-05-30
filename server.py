@@ -43,7 +43,7 @@ N_WORKERS       = int(os.getenv("N_WORKERS", "4"))
 MAX_JOBS_PER_IP = int(os.getenv("MAX_JOBS_PER_IP", "3"))
 MAX_GLOBAL_JOBS = int(os.getenv("MAX_GLOBAL_JOBS", "10"))
 API_KEY         = os.getenv("API_KEY", "")          # empty = auth disabled
-STATIC_VER      = "4"
+STATIC_VER      = "5"
 
 # CPU-bound executor (spaCy, pydub)
 _CPU_WORKERS  = max(4, (os.cpu_count() or 4) * 2)
@@ -290,6 +290,47 @@ def _parse_book(path: Path, ext: str):
     if not chapters:
         raise ValueError("No readable chapters found in the uploaded file.")
     return chapters
+
+
+# ─── Job state (for page-reload restore) ──────────────────────────────────────
+
+@app.get("/job/{job_id}")
+async def get_job_state(job_id: str):
+    """Return current job state so the frontend can restore itself after a reload."""
+    job          = await _get_job(job_id)
+    chapters_raw = json.loads(job.chapters_json)
+    audio_keys   = json.loads(job.audio_keys)
+    preview_keys = json.loads(job.preview_keys)
+
+    # Chapters with fully assembled audio
+    audio_ready = [
+        {"number": int(k), "title": next(
+            (c["title"] for c in chapters_raw if str(c["number"]) == k), ""
+        )}
+        for k, v in audio_keys.items()
+        if await storage.exists(v)
+    ]
+    # Chapters with only preview audio (not yet fully assembled)
+    preview_ready = [
+        {"number": int(k), "title": next(
+            (c["title"] for c in chapters_raw if str(c["number"]) == k), ""
+        )}
+        for k, v in preview_keys.items()
+        if k not in audio_keys and await storage.exists(v)
+    ]
+
+    return {
+        "id":            job.id,
+        "status":        job.status,
+        "progress":      job.progress,
+        "message":       job.message,
+        "error":         job.error,
+        "voice":         job.voice,
+        "chapters":      [{"number": c["number"], "title": c["title"]} for c in chapters_raw],
+        "selected":      job.selected,
+        "audio_ready":   audio_ready,
+        "preview_ready": preview_ready,
+    }
 
 
 # ─── Synthesize ───────────────────────────────────────────────────────────────

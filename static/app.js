@@ -85,6 +85,10 @@ async function uploadFile(file) {
     currentChapters  = data.chapters;
     currentBookName  = file.name.replace(/\.[^.]+$/, '');
 
+    // Persist so the session survives a page reload
+    localStorage.setItem('lector_job_id',    currentJobId);
+    localStorage.setItem('lector_book_name', currentBookName);
+
     await loadVoices();
     renderChapterList(data.chapters);
 
@@ -184,6 +188,8 @@ function backToUpload() {
   if (sseSource) { sseSource.close(); sseSource = null; }
   jobComplete = false;
   destroyAllWavesurfers();
+  localStorage.removeItem('lector_job_id');
+  localStorage.removeItem('lector_book_name');
   showScreen('upload');
 }
 
@@ -562,11 +568,83 @@ function convertAnother() {
   currentJobId    = null;
   currentChapters = [];
   currentBookName = '';
+  localStorage.removeItem('lector_job_id');
+  localStorage.removeItem('lector_book_name');
   document.getElementById('audio-list').innerHTML = '';
   document.getElementById('generate-btn').disabled = false;
   const fi = document.getElementById('file-input');
   if (fi) fi.value = '';
   showScreen('upload');
+}
+
+// ── Session restore (page reload) ────────────────────────────────────────────
+async function restoreSession(jobId) {
+  const resp = await fetch(`/job/${jobId}`);
+  if (!resp.ok) throw new Error('Job not found');
+  const job = await resp.json();
+
+  currentJobId    = job.id;
+  currentChapters = job.chapters;
+  currentBookName = localStorage.getItem('lector_book_name') || 'Your book';
+
+  // Populate sidebar
+  showScreen('app');
+  await loadVoices();
+  renderChapterList(job.chapters);
+  document.getElementById('book-name-display').textContent = currentBookName;
+  document.getElementById('chapter-count-display').textContent =
+    `${job.chapters.length} chapter${job.chapters.length !== 1 ? 's' : ''}`;
+
+  // Mark already-selected chapters checked
+  if (job.selected && job.selected.length) {
+    document.querySelectorAll('.chapter-cb').forEach(cb => {
+      cb.checked = job.selected.includes(parseInt(cb.value, 10));
+    });
+  }
+
+  const terminal = ['done', 'error'];
+  const active   = ['queued', 'analyzing', 'synthesizing', 'assembling'];
+
+  if (job.status === 'done' || job.audio_ready.length > 0 || job.preview_ready.length > 0) {
+    // Show result view and rebuild audio cards
+    document.getElementById('right-placeholder').style.display = 'none';
+    document.getElementById('progress-view').classList.add('hidden');
+
+    const allChapters = [...job.audio_ready, ...job.preview_ready];
+    allChapters.sort((a, b) => a.number - b.number);
+    const audioNums = new Set(job.audio_ready.map(c => c.number));
+
+    allChapters.forEach(ch => {
+      appendAudioCard(ch, !audioNums.has(ch.number));
+      markChapterDone(ch.number);
+    });
+
+    showResultView(job.audio_ready.length || null);
+    document.getElementById('generate-btn').disabled = false;
+
+    if (active.includes(job.status)) {
+      // Still synthesizing — reconnect SSE to pick up remaining chapters
+      jobComplete = false;
+      document.getElementById('progress-view').classList.remove('hidden');
+      setProgress(job.progress || 0, job.status, job.message || '');
+      listenProgress();
+    } else {
+      jobComplete = true;
+    }
+  } else if (active.includes(job.status)) {
+    // No audio yet but job is running — show progress and reconnect
+    jobComplete = false;
+    document.getElementById('right-placeholder').style.display = 'none';
+    document.getElementById('progress-view').classList.remove('hidden');
+    setProgress(job.progress || 0, job.status, job.message || '');
+    listenProgress();
+  } else if (job.status === 'error') {
+    showError(job.error || 'Synthesis failed.');
+    document.getElementById('generate-btn').disabled = false;
+  } else if (job.status === 'pending') {
+    // Uploaded but synthesis not started — stay on chapter-select screen
+    document.getElementById('generate-btn').disabled = false;
+  }
 }
 
 // ── Drag & drop + file input ─────────────────────────────────────────────────
@@ -606,4 +684,14 @@ document.addEventListener('DOMContentLoaded', () => {
   fileInput.addEventListener('change', () => {
     if (fileInput.files?.[0]) uploadFile(fileInput.files[0]);
   });
+
+  // ── Restore session after page reload ───────────────────────────────────
+  const savedJobId = localStorage.getItem('lector_job_id');
+  if (savedJobId) {
+    restoreSession(savedJobId).catch(() => {
+      // Job no longer exists or server is down — clear stale state
+      localStorage.removeItem('lector_job_id');
+      localStorage.removeItem('lector_book_name');
+    });
+  }
 });
