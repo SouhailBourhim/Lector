@@ -35,7 +35,7 @@
     <div class="nav-right">
       <a class="nav-gh" href="https://github.com/SouhailBourhim/Lector" target="_blank" rel="noopener" aria-label="GitHub">
         <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.5 2 2 6.6 2 12.2c0 4.5 2.9 8.3 6.8 9.6.5.1.7-.2.7-.5v-1.7c-2.8.6-3.4-1.4-3.4-1.4-.5-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.6 2.4 1.1 3 .9.1-.7.4-1.1.6-1.4-2.2-.3-4.6-1.1-4.6-5 0-1.1.4-2 1-2.7-.1-.3-.4-1.3.1-2.7 0 0 .8-.3 2.7 1a9.3 9.3 0 0 1 5 0c1.9-1.3 2.7-1 2.7-1 .5 1.4.2 2.4.1 2.7.6.7 1 1.6 1 2.7 0 3.9-2.4 4.7-4.6 5 .4.3.7.9.7 1.9v2.8c0 .3.2.6.7.5 3.9-1.3 6.8-5.1 6.8-9.6C22 6.6 17.5 2 12 2Z"/></svg>
-        <span>Star</span>
+        <span class="gh-star-count"></span><span>Star</span>
       </a>
       <a class="btn btn-primary" href="/app">Try it free</a>
     </div>
@@ -72,7 +72,8 @@
         </button>
       </div>
       <div class="wavebar" id="hero-wave"></div>
-      <div class="player-scrub"><span id="hero-time">00:00</span><span>24:18</span></div>
+      <div class="player-scrub"><span id="hero-time">00:00</span><span id="hero-duration">--:--</span></div>
+      <audio id="hero-audio" preload="none" src="/demo/hero"></audio>
     </div>
 
     <div class="hero-logos reveal">
@@ -309,7 +310,7 @@
           <div class="oss-cta">
             <a class="btn btn-primary" href="https://github.com/SouhailBourhim/Lector" target="_blank" rel="noopener">
               <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.5 2 2 6.6 2 12.2c0 4.5 2.9 8.3 6.8 9.6.5.1.7-.2.7-.5v-1.7c-2.8.6-3.4-1.4-3.4-1.4-.5-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.6 2.4 1.1 3 .9.1-.7.4-1.1.6-1.4-2.2-.3-4.6-1.1-4.6-5 0-1.1.4-2 1-2.7-.1-.3-.4-1.3.1-2.7 0 0 .8-.3 2.7 1a9.3 9.3 0 0 1 5 0c1.9-1.3 2.7-1 2.7-1 .5 1.4.2 2.4.1 2.7.6.7 1 1.6 1 2.7 0 3.9-2.4 4.7-4.6 5 .4.3.7.9.7 1.9v2.8c0 .3.2.6.7.5 3.9-1.3 6.8-5.1 6.8-9.6C22 6.6 17.5 2 12 2Z"/></svg>
-              View on GitHub
+              <span class="gh-star-count"></span>View on GitHub
             </a>
             <a class="btn btn-ghost" href="/app">Try the app</a>
           </div>
@@ -461,38 +462,71 @@
     return h;
   });
 
-  let heroPlaying = false, heroProg = 0, heroTimer = null;
-  const heroPlayBtn = $("#hero-play");
-  const heroTime = $("#hero-time");
-  const TOTAL = 24 * 60 + 18;
+  const heroPlayBtn  = $("#hero-play");
+  const heroTime     = $("#hero-time");
+  const heroDurEl    = $("#hero-duration");
+  const heroAudio    = $("#hero-audio");
+  const heroPlayerEl = $("#hero-player");
 
-  function paintHero() {
-    const cut = Math.floor(heroProg * HERO_N);
-    heroBars.forEach((b, i) => b.classList.toggle("on", i < cut));
-  }
   function fmt(s) {
+    if (!isFinite(s)) return "--:--";
     const m = Math.floor(s / 60), sec = Math.floor(s % 60);
     return String(m).padStart(2, "0") + ":" + String(sec).padStart(2, "0");
   }
-  function heroTick() {
-    heroProg += 0.0016;
-    if (heroProg >= 1) heroProg = 0;
-    heroTime.textContent = fmt(heroProg * TOTAL);
-    const cut = Math.floor(heroProg * HERO_N);
+  function paintHero(prog) {
+    const cut = Math.floor((prog || 0) * HERO_N);
     heroBars.forEach((b, i) => {
-      if (Math.abs(i - cut) < 3) b.style.height = Math.max(8, heroEnv[i] * rand(0.7, 1.25)) + "%";
-      else b.style.height = heroEnv[i] + "%";
+      b.classList.toggle("on", i < cut);
+      if (Math.abs(i - cut) < 3 && heroAudio && !heroAudio.paused) {
+        b.style.height = Math.max(8, heroEnv[i] * rand(0.7, 1.25)) + "%";
+      } else {
+        b.style.height = heroEnv[i] + "%";
+      }
     });
-    paintHero();
   }
-  function setHeroPlaying(p) {
-    heroPlaying = p;
-    heroPlayBtn.classList.toggle("playing", p);
-    if (p) { heroTimer = setInterval(heroTick, 60); }
-    else { clearInterval(heroTimer); }
+
+  if (heroAudio) {
+    heroAudio.addEventListener("loadedmetadata", () => {
+      if (heroDurEl) heroDurEl.textContent = fmt(heroAudio.duration);
+    });
+    heroAudio.addEventListener("timeupdate", () => {
+      const prog = heroAudio.duration ? heroAudio.currentTime / heroAudio.duration : 0;
+      heroTime.textContent = fmt(heroAudio.currentTime);
+      paintHero(prog);
+    });
+    heroAudio.addEventListener("ended", () => {
+      if (heroPlayBtn) heroPlayBtn.classList.remove("playing");
+      paintHero(0);
+      heroTime.textContent = "00:00";
+    });
+    heroAudio.addEventListener("waiting",  () => heroPlayerEl && heroPlayerEl.classList.add("audio-loading"));
+    heroAudio.addEventListener("playing",  () => heroPlayerEl && heroPlayerEl.classList.remove("audio-loading"));
+    heroAudio.addEventListener("canplay",  () => heroPlayerEl && heroPlayerEl.classList.remove("audio-loading"));
   }
-  if (heroPlayBtn) heroPlayBtn.addEventListener("click", () => setHeroPlaying(!heroPlaying));
-  paintHero();
+
+  if (heroPlayBtn) {
+    heroPlayBtn.addEventListener("click", () => {
+      if (!heroAudio) return;
+      if (heroAudio.paused) {
+        heroAudio.play();
+        heroPlayBtn.classList.add("playing");
+      } else {
+        heroAudio.pause();
+        heroPlayBtn.classList.remove("playing");
+      }
+    });
+  }
+
+  if (heroWave && heroAudio) {
+    heroWave.addEventListener("click", (e) => {
+      if (!heroAudio.duration) return;
+      const r = heroWave.getBoundingClientRect();
+      heroAudio.currentTime = ((e.clientX - r.left) / r.width) * heroAudio.duration;
+    });
+    heroWave.style.cursor = "pointer";
+  }
+
+  paintHero(0);
 
   /* ── Compare mini-waves ────────────────────────── */
   const flatBars = fillBars($("#flatwave"), 34, "i");
@@ -625,21 +659,24 @@
   setTimeout(dissectCheck, 300);
 
   /* ── Voices picker ─────────────────────────────── */
-  const VOICES = [
-    { id: "Aria",    flag: "🇺🇸", accent: "American English",   gender: "Female", quote: "“Call me Ishmael. Some years ago — never mind how long precisely…”", def: true },
-    { id: "Guy",     flag: "🇺🇸", accent: "American English",   gender: "Male",   quote: "“It was a bright cold day in April, and the clocks were striking thirteen.”" },
-    { id: "Sonia",   flag: "🇬🇧", accent: "British English",    gender: "Female", quote: "“It was the best of times, it was the worst of times…”" },
-    { id: "Ryan",    flag: "🇬🇧", accent: "British English",    gender: "Male",   quote: "“It is a truth universally acknowledged, that a single man…”" },
-    { id: "Natasha", flag: "🇦🇺", accent: "Australian English", gender: "Female", quote: "“The sky above the port was the colour of television, tuned to a dead channel.”" },
-    { id: "William", flag: "🇦🇺", accent: "Australian English", gender: "Male",   quote: "“All happy families are alike; each unhappy family is unhappy in its own way.”" },
-    { id: "Clara",   flag: "🇨🇦", accent: "Canadian English",  gender: "Female", quote: "“In a hole in the ground there lived a hobbit.”" },
-    { id: "Neerja",  flag: "🇮🇳", accent: "Indian English",     gender: "Female", quote: "“The past is a foreign country; they do things differently there.”" },
-  ];
+  const FLAG   = { “en-US”: “🇺🇸”, “en-GB”: “🇬🇧”, “en-AU”: “🇦🇺”, “en-CA”: “🇨🇦”, “en-IN”: “🇮🇳” };
+  const ACCENT = { “en-US”: “American English”, “en-GB”: “British English”, “en-AU”: “Australian English”, “en-CA”: “Canadian English”, “en-IN”: “Indian English” };
+  const QUOTE  = {
+    “en-US-AriaNeural”:    ““Call me Ishmael. Some years ago — never mind how long precisely…””,
+    “en-US-GuyNeural”:     ““It was a bright cold day in April, and the clocks were striking thirteen.””,
+    “en-GB-SoniaNeural”:   ““It was the best of times, it was the worst of times…””,
+    “en-GB-RyanNeural”:    ““It is a truth universally acknowledged, that a single man…””,
+    “en-AU-NatashaNeural”: ““The sky above the port was the colour of television, tuned to a dead channel.””,
+    “en-AU-WilliamNeural”: ““All happy families are alike; each unhappy family is unhappy in its own way.””,
+    “en-CA-ClaraNeural”:   ““In a hole in the ground there lived a hobbit.””,
+    “en-IN-NeerjaNeural”:  ““The past is a foreign country; they do things differently there.””,
+  };
+  const DEFAULT_VOICE = “en-US-AriaNeural”;
 
-  const list = $("#voice-list");
-  const vsFlag = $("#vs-flag"), vsName = $("#vs-name"), vsMeta = $("#vs-meta"), vsQuote = $("#vs-quote");
-  const vsWave = $("#vs-wave");
-  const vsBars = fillBars(vsWave, 48, "i");
+  const list = $(“#voice-list”);
+  const vsFlag = $(“#vs-flag”), vsName = $(“#vs-name”), vsMeta = $(“#vs-meta”), vsQuote = $(“#vs-quote”);
+  const vsWave = $(“#vs-wave”);
+  const vsBars = fillBars(vsWave, 48, “i”);
   let vsTimer = null;
 
   function paintVsWave(active) {
@@ -649,56 +686,132 @@
         vsBars.forEach((b, i) => {
           const env = Math.sin((i / 48) * Math.PI) * 0.7 + 0.3;
           const h = Math.max(10, env * rand(0.4, 1.1) * 100);
-          b.style.height = h + "%";
-          b.style.background = "linear-gradient(180deg,var(--accent-2),var(--accent-deep))";
+          b.style.height = h + “%”;
+          b.style.background = “linear-gradient(180deg,var(--accent-2),var(--accent-deep))”;
         });
       }, 110);
     } else {
       vsBars.forEach((b, i) => {
         const env = Math.sin((i / 48) * Math.PI) * 0.6 + 0.25;
-        b.style.height = Math.max(10, env * 60) + "%";
-        b.style.background = "var(--line)";
+        b.style.height = Math.max(10, env * 60) + “%”;
+        b.style.background = “var(--line)”;
       });
     }
   }
 
-  let selVoice = 2;
+  // Shared audio element for voice samples
+  const voiceAudio = new Audio();
+  let playingVoiceBtn = null;
+
+  function stopVoiceAudio() {
+    voiceAudio.pause();
+    voiceAudio.src = “”;
+    if (playingVoiceBtn) {
+      playingVoiceBtn.classList.remove(“playing”, “loading”);
+      playingVoiceBtn = null;
+    }
+    paintVsWave(false);
+  }
+
+  let voiceData = [];
+  let selVoice = 0;
+
   function selectVoice(i, fromClick) {
     selVoice = i;
-    const v = VOICES[i];
-    if (vsFlag) vsFlag.textContent = v.flag;
-    if (vsName) vsName.textContent = v.id;
-    if (vsMeta) vsMeta.textContent = v.accent + " · " + v.gender;
-    if (vsQuote) vsQuote.textContent = v.quote;
-    $$(".voice", list).forEach((el, k) => el.classList.toggle("sel", k === i));
+    const v = voiceData[i];
+    if (!v) return;
+    const flag   = FLAG[v.locale]   || “🌐”;
+    const accent = ACCENT[v.locale] || v.locale;
+    const quote  = QUOTE[v.name]    || “”;
+    if (vsFlag)  vsFlag.textContent  = flag;
+    if (vsName)  vsName.textContent  = v.display;
+    if (vsMeta)  vsMeta.textContent  = accent + “ · “ + v.gender;
+    if (vsQuote) vsQuote.textContent = quote;
+    $$(“.voice”, list).forEach((el, k) => el.classList.toggle(“sel”, k === i));
+
     if (fromClick) {
-      paintVsWave(true);
-      clearTimeout(selectVoice._t);
-      selectVoice._t = setTimeout(() => paintVsWave(false), 2600);
+      // Stop any previous voice playback
+      stopVoiceAudio();
+      const btn = list.children[i];
+      if (btn) {
+        btn.classList.add(“loading”);
+        playingVoiceBtn = btn;
+      }
+      voiceAudio.src = “/demo/voice/” + v.name;
+      voiceAudio.load();
+      voiceAudio.play().then(() => {
+        if (btn) { btn.classList.remove(“loading”); btn.classList.add(“playing”); }
+        paintVsWave(true);
+      }).catch(() => {
+        if (btn) btn.classList.remove(“loading”, “playing”);
+        paintVsWave(false);
+        playingVoiceBtn = null;
+      });
     }
   }
 
-  function accentCode(a) {
-    return a.startsWith("American") ? "US" : a.startsWith("British") ? "GB" :
-           a.startsWith("Australian") ? "AU" : a.startsWith("Canadian") ? "CA" : "IN";
-  }
+  voiceAudio.addEventListener(“ended”, () => {
+    if (playingVoiceBtn) {
+      playingVoiceBtn.classList.remove(“playing”, “loading”);
+      playingVoiceBtn = null;
+    }
+    paintVsWave(false);
+  });
+  voiceAudio.addEventListener(“canplay”, () => {
+    if (playingVoiceBtn) playingVoiceBtn.classList.remove(“loading”);
+  });
 
-  if (list) {
-    VOICES.forEach((v, i) => {
-      const btn = document.createElement("button");
-      btn.className = "voice" + (i === selVoice ? " sel" : "");
+  function buildVoiceList(voices) {
+    voiceData = voices;
+    if (!list) return;
+    list.innerHTML = “”;
+    // Default to Sonia if available, else first
+    const soniaIdx = voices.findIndex(v => v.name === “en-GB-SoniaNeural”);
+    selVoice = soniaIdx >= 0 ? soniaIdx : 0;
+
+    voices.forEach((v, i) => {
+      const flag   = FLAG[v.locale]   || “🌐”;
+      const isDefault = v.name === DEFAULT_VOICE;
+      const btn = document.createElement(“button”);
+      btn.className = “voice” + (i === selVoice ? “ sel” : “”);
       btn.innerHTML =
-        '<span class="voice-flag">' + v.flag + '</span>' +
-        '<span class="voice-info"><span class="voice-name">' + v.id + (v.def ? ' · default' : '') + '</span>' +
-        '<span class="voice-desc">en-' + accentCode(v.accent) + '-' + v.id + 'Neural</span></span>' +
-        '<span class="voice-play"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span>';
-      btn.addEventListener("click", () => selectVoice(i, true));
+        '<span class=”voice-flag”>' + flag + '</span>' +
+        '<span class=”voice-info”><span class=”voice-name”>' + v.display + (isDefault ? ' · default' : '') + '</span>' +
+        '<span class=”voice-desc”>' + v.name + '</span></span>' +
+        '<span class=”voice-play”><svg viewBox=”0 0 24 24” fill=”currentColor”><path d=”M8 5v14l11-7z”/></svg></span>';
+      btn.addEventListener(“click”, () => selectVoice(i, true));
       list.appendChild(btn);
     });
+
+    selectVoice(selVoice, false);
+    paintVsWave(false);
   }
 
-  selectVoice(selVoice, false);
-  paintVsWave(false);
+  // Fetch voices from API; fall back to a hardcoded list if request fails
+  fetch(“/voices”)
+    .then(r => r.json())
+    .then(buildVoiceList)
+    .catch(() => buildVoiceList([
+      { name: “en-US-AriaNeural”,    locale: “en-US”, gender: “Female”, display: “Aria” },
+      { name: “en-US-GuyNeural”,     locale: “en-US”, gender: “Male”,   display: “Guy” },
+      { name: “en-GB-SoniaNeural”,   locale: “en-GB”, gender: “Female”, display: “Sonia” },
+      { name: “en-GB-RyanNeural”,    locale: “en-GB”, gender: “Male”,   display: “Ryan” },
+      { name: “en-AU-NatashaNeural”, locale: “en-AU”, gender: “Female”, display: “Natasha” },
+      { name: “en-AU-WilliamNeural”, locale: “en-AU”, gender: “Male”,   display: “William” },
+      { name: “en-CA-ClaraNeural”,   locale: “en-CA”, gender: “Female”, display: “Clara” },
+      { name: “en-IN-NeerjaNeural”,  locale: “en-IN”, gender: “Female”, display: “Neerja” },
+    ]));
+
+  /* ── GitHub star count ─────────────────────────── */
+  fetch(“https://api.github.com/repos/SouhailBourhim/Lector”)
+    .then(r => r.json())
+    .then(d => {
+      const stars = d.stargazers_count;
+      if (stars != null) {
+        $$(“.gh-star-count”).forEach(el => { el.textContent = “★ “ + stars + “ “; });
+      }
+    })
+    .catch(() => {}); // silently ignore if rate-limited
 
 })();
 </script>
