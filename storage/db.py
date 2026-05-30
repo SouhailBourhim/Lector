@@ -183,9 +183,10 @@ class JobRepo:
         unknown = set(fields) - self._UPDATABLE
         if unknown:
             raise ValueError(f"Unknown job fields: {unknown}")
-        setters = ", ".join(f"{col}=?" for col in fields)   # col is whitelist-validated
+        setters = ", ".join(col + "=?" for col in fields)   # col is whitelist-validated above
+        sql     = "UPDATE jobs SET " + setters + " WHERE id=?"
         values  = list(fields.values()) + [job_id]
-        await self._db.execute(f"UPDATE jobs SET {setters} WHERE id=?", values)
+        await self._db.execute(sql, values)
         await self._db.commit()
 
     async def delete(self, job_id: str) -> None:
@@ -264,18 +265,15 @@ class JobRepo:
         so there is no SQL-injection risk; aiosqlite's parameter binding is
         used for the only runtime value (the timestamp).
         """
-        now = time.time()
-        async with self._db.execute(
-            f"SELECT COUNT(*) FROM jobs WHERE status IN {self._IN_FLIGHT_STATES}"
-        ) as cur:
+        now      = time.time()
+        sql_sel  = "SELECT COUNT(*) FROM jobs WHERE status IN " + self._IN_FLIGHT_STATES
+        sql_upd  = ("UPDATE jobs SET status='queued', updated_at=?"
+                    " WHERE status IN " + self._IN_FLIGHT_STATES)
+        async with self._db.execute(sql_sel) as cur:
             row = await cur.fetchone()
         count = row[0] if row else 0
         if count:
-            await self._db.execute(
-                f"UPDATE jobs SET status='queued', updated_at=?"
-                f" WHERE status IN {self._IN_FLIGHT_STATES}",
-                (now,),
-            )
+            await self._db.execute(sql_upd, (now,))
             await self._db.commit()
             log.info("Re-queued %d interrupted job(s) from previous run", count)
 
