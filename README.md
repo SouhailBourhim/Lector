@@ -4,6 +4,13 @@ An intelligent audiobook reader that converts PDF and EPUB books into natural-so
 
 **100% free. No paid APIs. No cloud dependencies.**
 
+**Stack:** Python 3.10+ · FastAPI · spaCy · edge-tts · PyMuPDF · ebooklib · pydub · WaveSurfer.js · Docker
+
+The interesting part is not the text-to-speech — that is one library call. It is the layer in front of
+it: a spaCy dependency-parse pass that scores each sentence for complexity, detects dialogue, and emits
+per-sentence rate and pause parameters, so the output has the shape of narration instead of the flat
+cadence of a screen reader.
+
 ---
 
 ## How It Works
